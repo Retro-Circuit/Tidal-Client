@@ -1,0 +1,22 @@
+{
+  "name": "tidal-client",
+  "version": "1.0.0",
+  "description": "A dark, minimal Minecraft launcher built with Electron, React, Tailwind CSS, and TypeScript.",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Retro-Circuit/tidal-client.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Retro-Circuit/tidal-client/issues"
+  },
+  "homepage": "https://github.com/Retro-Circuit/tidal-client#readme"
+}
