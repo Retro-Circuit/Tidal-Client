@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --color-tidal: #0349fc;
+  --color-tidal-glow: #3d6fff;
+  --color-ink: #121212;
+  --color-panel: #181818;
+  --color-raised: #1f1f1f;
+  --color-line: #2a2a2a;
+  --color-mist: #cfcfd6;
+  --color-mute: #8b8b96;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #121212;
+  color: #f3f3f6;
+  font-family: var(--font-sans);
+  overflow: hidden;
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2f2f2f;
+  border-radius: 999px;
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.prose-tidal {
+  color: #cfcfd6;
+  font-size: 0.925rem;
+  line-height: 1.65;
+}
+
+.prose-tidal h1,
+.prose-tidal h2,
+.prose-tidal h3 {
+  color: #f3f3f6;
+  margin: 1.1rem 0 0.4rem;
+  font-weight: 600;
+}
+
+.prose-tidal p,
+.prose-tidal ul,
+.prose-tidal ol {
+  margin: 0.55rem 0;
+}
+
+.prose-tidal a {
+  color: #3d6fff;
+}
+
+.prose-tidal img {
+  max-width: 100%;
+  border-radius: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.prose-tidal code {
+  background: #1f1f1f;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+}
