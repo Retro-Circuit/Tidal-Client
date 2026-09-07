@@ -29,14 +29,31 @@ public class TidalBuiltin implements ClientModInitializer {
     }
 
     public static void tick(Minecraft minecraft) {
-        Capes.tick(minecraft);
-        AccountCapes.tick(minecraft);
-        CapeShare.tick(minecraft);
-        HudRuntime.tick(minecraft);
+        try {
+            Capes.tick(minecraft);
+        } catch (Throwable ignored) {
+        }
+        try {
+            AccountCapes.tick(minecraft);
+        } catch (Throwable ignored) {
+        }
+        try {
+            CapeShare.tick(minecraft);
+        } catch (Throwable ignored) {
+        }
+        try {
+            HudRuntime.tick(minecraft);
+        } catch (Throwable ignored) {
+        }
         if (minecraft.player == null || minecraft.level == null) {
             return;
         }
-        boolean down = menuDown(minecraft);
+        boolean down;
+        try {
+            down = menuDown(minecraft);
+        } catch (Throwable ignored) {
+            return;
+        }
         boolean pressed = down && !menuHeld;
         menuHeld = down;
 

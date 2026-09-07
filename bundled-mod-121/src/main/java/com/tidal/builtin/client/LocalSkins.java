@@ -101,7 +101,7 @@ public final class LocalSkins {
                     "tidal-builtin",
                     "textures/skin/" + Integer.toHexString(entry.key.hashCode()) + ".png"
                 );
-                DynamicTexture texture = new DynamicTexture(image);
+                DynamicTexture texture = NativeImages.texture("tidal-skin-" + entry.key.hashCode(), image);
                 minecraft.getTextureManager().register(textureId, texture);
                 textures.put(entry.key, new Loaded(entry, textureId));
             } catch (Exception ignored) {

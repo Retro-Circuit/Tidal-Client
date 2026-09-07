@@ -15,7 +15,6 @@ import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -183,8 +182,11 @@ public final class Capes {
             }
             loaded.ticks = 0;
             loaded.frame = (loaded.frame + 1) % loaded.frames.length;
-            copy(loaded.frames[loaded.frame], loaded.texture.getPixels());
-            loaded.texture.upload();
+            NativeImage dest = loaded.texture.getPixels();
+            if (dest != null) {
+                copy(loaded.frames[loaded.frame], dest);
+                loaded.texture.upload();
+            }
         }
     }
 
@@ -214,7 +216,7 @@ public final class Capes {
                 continue;
             }
             ResourceLocation textureId = ResourceLocation.fromNamespaceAndPath("tidal-builtin", "textures/cape/" + item.id + ".png");
-            DynamicTexture texture = new DynamicTexture(copyOf(frames[0]));
+            DynamicTexture texture = NativeImages.texture("tidal-cape-" + item.id, NativeImages.copyOf(frames[0]));
             minecraft.getTextureManager().register(textureId, texture);
             LOADED.add(new Loaded(item, textureId, texture, frames, delays));
         }
@@ -261,38 +263,42 @@ public final class Capes {
     }
 
     private static NativeImage solidWhite() {
-        NativeImage image = new NativeImage(64, 32, true);
-        fillCapeFaces(image, 0xFFFFFFFF);
-        return image;
+        int[] pixels = new int[64 * 32];
+        fillCapeFaces(pixels, 0xFFFFFFFF);
+        return NativeImages.fromArgb(64, 32, pixels);
     }
 
     private static NativeImage exclusiveCape() {
-        NativeImage image = new NativeImage(64, 32, true);
+        int[] pixels = new int[64 * 32];
         int blue = 0xFF0349FC;
         int white = 0xFFFFFFFF;
-        fillCapeFaces(image, blue);
+        fillCapeFaces(pixels, blue);
         for (int y = 1; y < 17; y++) {
             for (int x = 1; x < 11; x++) {
                 boolean stripe = (x + y) % 5 < 2;
                 int color = stripe ? white : blue;
-                image.setPixelRGBA(x, y, color);
-                image.setPixelRGBA(x + 10, y, color);
+                pixels[y * 64 + x] = color;
+                pixels[y * 64 + x + 10] = color;
             }
         }
-        return image;
+        return NativeImages.fromArgb(64, 32, pixels);
     }
 
-    private static void fillCapeFaces(NativeImage image, int color) {
+    private static void fillCapeFaces(int[] pixels, int color) {
         for (int y = 0; y < 17; y++) {
             for (int x = 0; x < 22; x++) {
-                image.setPixelRGBA(x, y, color);
+                pixels[y * 64 + x] = color;
             }
         }
     }
 
     private static NativeImage readStill(Path file) {
-        try (InputStream stream = Files.newInputStream(file)) {
-            return toOgCape(NativeImage.read(stream));
+        try {
+            BufferedImage image = ImageIO.read(file.toFile());
+            if (image == null) {
+                return solidWhite();
+            }
+            return NativeImages.fromBuffered(toOgCape(image));
         } catch (Exception ignored) {
             return solidWhite();
         }
@@ -367,58 +373,29 @@ public final class Capes {
     private static NativeImage fromAwt(BufferedImage source) {
         BufferedImage argb = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
         argb.getGraphics().drawImage(source, 0, 0, null);
-        NativeImage image = new NativeImage(argb.getWidth(), argb.getHeight(), true);
-        for (int y = 0; y < argb.getHeight(); y++) {
-            for (int x = 0; x < argb.getWidth(); x++) {
-                image.setPixelRGBA(x, y, argb.getRGB(x, y));
-            }
-        }
-        return toOgCape(image);
+        return NativeImages.fromBuffered(toOgCape(argb));
     }
 
-    private static NativeImage toOgCape(NativeImage source) {
+    private static BufferedImage toOgCape(BufferedImage source) {
         int srcW = source.getWidth();
         int srcH = source.getHeight();
         if (srcW == 64 && srcH == 32) {
             return source;
         }
-        NativeImage out = new NativeImage(64, 32, true);
+        BufferedImage out = new BufferedImage(64, 32, BufferedImage.TYPE_INT_ARGB);
         if (srcW == 64 && srcH >= 32) {
-            for (int y = 0; y < 32; y++) {
-                for (int x = 0; x < 64; x++) {
-                    out.setPixelRGBA(x, y, source.getPixelRGBA(x, y));
-                }
-            }
-            source.close();
+            out.getGraphics().drawImage(source, 0, 0, 64, 32, 0, 0, 64, 32, null);
             return out;
         }
-        for (int y = 0; y < 32; y++) {
-            for (int x = 0; x < 64; x++) {
-                int sx = Math.min(srcW - 1, x * srcW / 64);
-                int sy = Math.min(srcH - 1, y * srcH / 32);
-                out.setPixelRGBA(x, y, source.getPixelRGBA(sx, sy));
-            }
-        }
-        source.close();
+        out.getGraphics().drawImage(source, 0, 0, 64, 32, null);
         return out;
     }
 
     private static NativeImage copyOf(NativeImage source) {
-        NativeImage copy = new NativeImage(source.getWidth(), source.getHeight(), true);
-        copy(source, copy);
-        return copy;
+        return NativeImages.copyOf(source);
     }
 
     private static void copy(NativeImage from, NativeImage to) {
-        if (to == null) {
-            return;
-        }
-        int w = Math.min(from.getWidth(), to.getWidth());
-        int h = Math.min(from.getHeight(), to.getHeight());
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                to.setPixelRGBA(x, y, from.getPixelRGBA(x, y));
-            }
-        }
+        NativeImages.copy(from, to);
     }
 }

@@ -1,9 +1,9 @@
 package com.tidal.builtin.client;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.InputStream;
 
 final class GuiTextures {
@@ -29,18 +29,20 @@ final class GuiTextures {
             if (stream == null) {
                 return;
             }
-            NativeImage image = NativeImage.read(stream);
+            BufferedImage image = ImageIO.read(stream);
+            if (image == null) {
+                return;
+            }
             if (gearOnly) {
                 image = extractGear(image);
                 settingsSize = image.getWidth();
             }
-            DynamicTexture texture = new DynamicTexture(image);
-            minecraft.getTextureManager().register(id, texture);
+            minecraft.getTextureManager().register(id, NativeImages.texture(id.getPath(), NativeImages.fromBuffered(image)));
         } catch (Exception ignored) {
         }
     }
 
-    private static NativeImage extractGear(NativeImage source) {
+    private static BufferedImage extractGear(BufferedImage source) {
         int w = source.getWidth();
         int h = source.getHeight();
         int x0 = w;
@@ -49,8 +51,9 @@ final class GuiTextures {
         int y1 = 0;
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                if (!isGearPixel(source.getPixelRGBA(x, y))) {
-                    source.setPixelRGBA(x, y, 0);
+                int pixel = source.getRGB(x, y);
+                if (!isGearPixel(pixel)) {
+                    source.setRGB(x, y, 0);
                     continue;
                 }
                 x0 = Math.min(x0, x);
@@ -60,51 +63,30 @@ final class GuiTextures {
             }
         }
         if (x1 < x0) {
-            source.close();
-            NativeImage empty = new NativeImage(16, 16, true);
-            return empty;
+            return new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
         }
         int side = Math.max(x1 - x0 + 1, y1 - y0 + 1);
-        NativeImage gear = new NativeImage(side, side, true);
+        BufferedImage gear = new BufferedImage(side, side, BufferedImage.TYPE_INT_ARGB);
         int ox = (side - (x1 - x0 + 1)) / 2;
         int oy = (side - (y1 - y0 + 1)) / 2;
         for (int y = y0; y <= y1; y++) {
             for (int x = x0; x <= x1; x++) {
-                gear.setPixelRGBA(ox + (x - x0), oy + (y - y0), source.getPixelRGBA(x, y));
+                gear.setRGB(ox + (x - x0), oy + (y - y0), source.getRGB(x, y));
             }
         }
-        source.close();
-        return nearest(gear, 16);
+        return NativeImages.scaleNearest(gear, 16, 16);
     }
 
     private static boolean isGearPixel(int pixel) {
         int a = pixel >>> 24;
-        int r = pixel & 0xFF;
+        int r = pixel >> 16 & 0xFF;
         int g = pixel >> 8 & 0xFF;
-        int b = pixel >> 16 & 0xFF;
+        int b = pixel & 0xFF;
         if (a < 40) {
             return false;
         }
         int min = Math.min(r, Math.min(g, b));
         int max = Math.max(r, Math.max(g, b));
         return min > 150 && max - min < 50;
-    }
-
-    private static NativeImage nearest(NativeImage source, int size) {
-        if (source.getWidth() == size && source.getHeight() == size) {
-            return source;
-        }
-        NativeImage out = new NativeImage(size, size, true);
-        int sw = source.getWidth();
-        int sh = source.getHeight();
-        for (int y = 0; y < size; y++) {
-            int sy = Math.min(sh - 1, y * sh / size);
-            for (int x = 0; x < size; x++) {
-                int sx = Math.min(sw - 1, x * sw / size);
-                out.setPixelRGBA(x, y, source.getPixelRGBA(sx, sy));
-            }
-        }
-        source.close();
-        return out;
     }
 }

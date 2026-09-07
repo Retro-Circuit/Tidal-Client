@@ -134,7 +134,7 @@ public final class AccountCapes {
             try {
                 NativeImage image = NativeImage.read(bytes);
                 ResourceLocation textureId = ResourceLocation.fromNamespaceAndPath("tidal-builtin", "textures/ms-cape/" + id.replace("-", "") + ".png");
-                DynamicTexture texture = new DynamicTexture(image);
+                DynamicTexture texture = NativeImages.texture("tidal-ms-cape-" + id, image);
                 minecraft.getTextureManager().register(textureId, texture);
                 Cape cape = find(id);
                 if (cape != null) {
@@ -248,7 +248,7 @@ public final class AccountCapes {
                 try {
                     NativeImage image = NativeImage.read(png);
                     ResourceLocation textureId = ResourceLocation.fromNamespaceAndPath("tidal-builtin", "textures/other-cape/" + id + ".png");
-                    DynamicTexture texture = new DynamicTexture(image);
+                    DynamicTexture texture = NativeImages.texture("tidal-other-cape-" + id, image);
                     minecraft.getTextureManager().register(textureId, texture);
                     OTHERS.put(uuid, textureId);
                 } catch (Exception ignored) {
