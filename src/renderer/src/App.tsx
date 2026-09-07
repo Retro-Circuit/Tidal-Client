@@ -71,7 +71,7 @@ export default function App() {
           onLogin={() => void login()}
           onLogout={() => void window.tidal.logout().then(setSession)}
         />
-        <section className="min-h-0 flex-1 overflow-hidden px-7 py-6">
+        <section className="no-drag min-h-0 flex-1 overflow-hidden px-7 py-6">
           {view === 'discover' ? (
             <DiscoverView settings={settings} onSettings={patchSettings} intent={discoverIntent} />
           ) : null}

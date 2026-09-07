@@ -54,7 +54,7 @@ export function Sidebar({
   const points = wallet?.points ?? 0
 
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col border-r border-line/80 bg-ink px-3 py-5">
+    <aside className="no-drag flex w-[232px] shrink-0 flex-col border-r border-line/80 bg-ink px-3 py-5">
       <div className="mb-8 flex items-center gap-3 px-2">
         <img src={tidalLogo} alt="Tidal Client" className="h-9 w-9 rounded-lg object-cover" />
         <div>

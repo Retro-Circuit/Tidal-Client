@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CreateInstanceRequest, ModLoaderId, VersionManifest } from '../../../shared/types'
+import { FieldSelect } from './FieldSelect'
 
 const LOADERS: { id: ModLoaderId; label: string }[] = [
   { id: 'vanilla', label: 'Vanilla' },
@@ -93,31 +94,31 @@ export function CreateInstanceModal({
   }
 
   return (
-    <dialog
-      open
-      className="animate-fade-in no-drag fixed inset-0 z-[80] m-0 flex h-full w-full max-w-none items-center justify-center bg-black/55 p-6 text-mist"
-    >
-      <div className="animate-rise no-drag w-full max-w-lg rounded-2xl border border-line bg-ink p-6">
+    <div className="animate-fade-in no-drag fixed inset-0 z-[80] flex h-full w-full items-center justify-center bg-black/55 p-6 text-mist">
+      <div
+        className="animate-rise no-drag w-full max-w-lg rounded-2xl border border-line bg-ink p-6"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <p className="text-[11px] uppercase tracking-[0.22em] text-mute">New instance</p>
         <h2 className="mt-1 text-2xl font-semibold">Create instance</h2>
 
         <label htmlFor={nameId} className="mt-5 block text-xs text-mute">
           Instance name
-          <input
-            id={nameId}
-            ref={nameRef}
-            autoFocus
-            type="text"
-            name="instanceName"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="My survival world"
-            className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none placeholder:text-mute focus:border-tidal"
-          />
         </label>
+        <input
+          id={nameId}
+          ref={nameRef}
+          autoFocus
+          type="text"
+          name="instanceName"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="My survival world"
+          className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none placeholder:text-mute focus:border-tidal"
+        />
 
         <div className="mt-4 flex gap-2">
           {(['release', 'snapshot'] as const).map((item) => (
@@ -138,52 +139,27 @@ export function CreateInstanceModal({
           ))}
         </div>
 
-        <label className="mt-3 block text-xs text-mute">
-          Minecraft version
-          <select
-            value={minecraftVersion}
-            onChange={(e) => setMinecraftVersion(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none focus:border-tidal"
-          >
-            {versions.map((version) => (
-              <option key={version.id} value={version.id}>
-                {version.id}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FieldSelect
+          label="Minecraft version"
+          value={minecraftVersion}
+          onChange={setMinecraftVersion}
+          options={versions.map((version) => ({ value: version.id, label: version.id }))}
+        />
 
-        <label className="mt-3 block text-xs text-mute">
-          Mod loader
-          <select
-            value={loader}
-            onChange={(e) => setLoader(e.target.value as ModLoaderId)}
-            className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none focus:border-tidal"
-          >
-            {LOADERS.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FieldSelect
+          label="Mod loader"
+          value={loader}
+          onChange={(next) => setLoader(next as ModLoaderId)}
+          options={LOADERS.map((item) => ({ value: item.id, label: item.label }))}
+        />
 
         {loader !== 'vanilla' ? (
-          <label className="mt-3 block text-xs text-mute">
-            Loader version
-            <select
-              value={loaderVersion}
-              onChange={(e) => setLoaderVersion(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none focus:border-tidal"
-            >
-              {loaderVersions.length === 0 ? <option value="">None found</option> : null}
-              {loaderVersions.map((version) => (
-                <option key={version} value={version}>
-                  {version}
-                </option>
-              ))}
-            </select>
-          </label>
+          <FieldSelect
+            label="Loader version"
+            value={loaderVersion}
+            onChange={setLoaderVersion}
+            options={loaderVersions.map((version) => ({ value: version, label: version }))}
+          />
         ) : null}
 
         {status && busy ? <p className="mt-3 text-sm text-mist">{status}</p> : null}
@@ -207,6 +183,6 @@ export function CreateInstanceModal({
           </button>
         </div>
       </div>
-    </dialog>
+    </div>
   )
 }

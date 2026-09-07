@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import type { GameInstance, ModpackCard, ProjectDetails } from '../../../shared/types'
-import { FullscreenView } from './FullscreenView'
+import { FieldSelect } from './FieldSelect'
 
 function toSafeHtml(raw: string): string {
   const looksHtml = /<\/?[a-z][\s\S]*>/i.test(raw)
@@ -112,21 +112,21 @@ export function ProjectDetailsModal({
               {details?.card.description ?? card.description}
             </p>
             {!isModpack ? (
-              <label className="mt-5 block max-w-md text-xs text-mute">
-                Install into instance
-                <select
+              <div className="mt-5 max-w-md">
+                <FieldSelect
+                  label="Install into instance"
                   value={instanceId}
-                  onChange={(e) => setInstanceId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm text-white outline-none transition focus:border-tidal"
-                >
-                  {instances.length === 0 ? <option value="">No instances yet</option> : null}
-                  {instances.map((instance) => (
-                    <option key={instance.id} value={instance.id}>
-                      {instance.name} ({instance.minecraftVersion})
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={setInstanceId}
+                  options={
+                    instances.length === 0
+                      ? [{ value: '', label: 'No instances yet' }]
+                      : instances.map((instance) => ({
+                          value: instance.id,
+                          label: `${instance.name} (${instance.minecraftVersion})`
+                        }))
+                  }
+                />
+              </div>
             ) : (
               <p className="mt-5 text-sm text-mute">Download creates a new instance from this modpack.</p>
             )}

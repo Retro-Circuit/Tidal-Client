@@ -75,10 +75,13 @@ export function InstancesView({
       </div>
 
       <input
+        type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search instances"
-        className="w-full rounded-full border border-line bg-panel px-5 py-3 text-sm outline-none transition placeholder:text-mute focus:border-tidal"
+        autoComplete="off"
+        spellCheck={false}
+        className="relative z-10 w-full rounded-full border border-line bg-panel px-5 py-3 text-sm text-white outline-none transition placeholder:text-mute focus:border-tidal"
       />
 
       {dropMessage ? <p className="text-sm text-mist">{dropMessage}</p> : null}
