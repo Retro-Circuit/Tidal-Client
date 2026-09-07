@@ -5,6 +5,9 @@ release
 bundled-mod/.gradle
 bundled-mod/build
 bundled-mod/.idea
+bundled-mod-121/.gradle
+bundled-mod-121/build
+bundled-mod-121/.idea
 .env
 *.log
 .DS_Store

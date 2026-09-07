@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "package": "com.tidal.builtin.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "PlayerSkinMixin",
+    "MinecraftMixin",
+    "ClientBrandRetrieverMixin",
+    "HudMixin",
+    "TitleScreenMixin",
+    "ChatScreenMixin",
+    "ChatComponentMixin",
+    "PlayerTabOverlayMixin",
+    "GameRendererMixin",
+    "MultiPlayerGameModeMixin",
+    "ParticleEngineMixin",
+    "OptionsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

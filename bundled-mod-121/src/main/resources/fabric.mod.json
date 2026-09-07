@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "tidal-builtin",
+  "version": "${version}",
+  "name": "Tidal Client",
+  "description": "Tidal Client menu for Minecraft 1.21",
+  "authors": ["Tidal Client"],
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.tidal.builtin.TidalBuiltin"]
+  },
+  "mixins": ["tidal-builtin.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": ">=1.21 <1.22",
+    "java": ">=21"
+  }
+}

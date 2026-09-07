@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const fullJar = join(root, 'resources', 'tidal-builtin.jar')
+const full121 = join(root, 'resources', 'tidal-builtin-121.jar')
 const outDir = join(root, 'resources', 'tidal-builtin')
 const compiledVersion = '26.2'
+const compiled121 = '1.21.1'
 const MANIFEST = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 
 function findStubJar() {
@@ -42,6 +44,11 @@ if (!existsSync(fullJar)) {
   process.exit(1)
 }
 
+if (!existsSync(full121)) {
+  console.error('Missing resources/tidal-builtin-121.jar — build bundled-mod-121 first.')
+  process.exit(1)
+}
+
 const stubName = findStubJar()
 const stubJar = stubName ? join(root, 'bundled-mod', 'build', 'libs', stubName) : null
 if (!stubJar) {
@@ -54,15 +61,21 @@ mkdirSync(outDir, { recursive: true })
 const ids = await releaseIds()
 if (!ids.includes(compiledVersion)) ids.unshift(compiledVersion)
 
-function sourceFor(id, fullJar, stubJar) {
+function sourceFor(id, fullJar, stubJar, full121) {
   if (id === compiledVersion || id.startsWith('26.') || /^26$/.test(id)) return fullJar
+  if (id === '1.21' || id.startsWith('1.21.')) return full121
   return stubJar
 }
 
-const catalog = { compiledVersion, releases: ids, families: { '26.x': compiledVersion } }
+const catalog = {
+  compiledVersion,
+  compiled121,
+  releases: ids,
+  families: { '26.x': compiledVersion, '1.21.x': compiled121 }
+}
 for (const id of ids) {
   const dest = join(outDir, `${id}.jar`)
-  stamp(sourceFor(id, fullJar, stubJar), dest, id)
+  stamp(sourceFor(id, fullJar, stubJar, full121), dest, id)
 }
 writeFileSync(join(outDir, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`)
 console.log(`Packed ${ids.length} release jars into ${outDir}`)
