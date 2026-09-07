@@ -16,8 +16,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class HudMixin {
     @Inject(method = "render", at = @At("TAIL"))
     private void tidal$keystrokes(GuiGraphics graphics, DeltaTracker delta, CallbackInfo ci) {
-        KeystrokesHud.extract(graphics, Minecraft.getInstance());
-        ArmorHud.extract(graphics, Minecraft.getInstance());
-        StatHuds.extract(graphics, Minecraft.getInstance());
+        try {
+            KeystrokesHud.extract(graphics, Minecraft.getInstance());
+            ArmorHud.extract(graphics, Minecraft.getInstance());
+            StatHuds.extract(graphics, Minecraft.getInstance());
+        } catch (Throwable ignored) {
+        }
     }
 }

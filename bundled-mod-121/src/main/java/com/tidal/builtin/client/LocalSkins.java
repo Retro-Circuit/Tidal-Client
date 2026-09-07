@@ -136,7 +136,7 @@ public final class LocalSkins {
             Glass.roundedFill(graphics, x, y, x + size, y + size, 4, 0x330349FC);
             return;
         }
-        graphics.blit(loaded.textureId, x, y, size, size, 8.0f, 8.0f, 8, 8, 64, 64);
+        HudBlit.sprite(graphics, loaded.textureId, x, y, size, size, 8.0f, 8.0f, 8, 8, 64, 64);
     }
 
     private static List<Entry> discover() {

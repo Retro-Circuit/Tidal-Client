@@ -157,7 +157,7 @@ public final class Capes {
             Glass.roundedFill(graphics, x, y, x + w, y + h, 4, 0xFF0349FC);
             return;
         }
-        graphics.blit(texture, x, y, w, h, 0.0f, 0.0f, 22, 17, 64, 32);
+        HudBlit.sprite(graphics, texture, x, y, w, h, 0.0f, 0.0f, 22, 17, 64, 32);
     }
 
     public static ResourceLocation preview(String id) {

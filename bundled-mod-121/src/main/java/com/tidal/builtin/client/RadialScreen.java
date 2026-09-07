@@ -183,7 +183,7 @@ public class RadialScreen extends Screen {
         int color = 0xFFF2F4F7;
         if (id == 0) {
             int s = GuiTextures.settingsSize / 2;
-            graphics.blit(GuiTextures.SETTINGS, cx - s, cy - s, 0, 0, s * 2, s * 2, s * 2, s * 2);
+            HudBlit.image(graphics, GuiTextures.SETTINGS, cx - s, cy - s, s * 2);
             return;
         }
         if (id == 1) {

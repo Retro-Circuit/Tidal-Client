@@ -14,8 +14,8 @@ final class PlayerPortrait {
             return;
         }
         int side = Math.max(16, size / 2);
-        graphics.blit(skin, cx - side / 2, cy - side / 2, side, side, 8.0f, 8.0f, 8, 8, 64, 64);
-        graphics.blit(skin, cx - side / 2, cy - side / 2, side, side, 40.0f, 8.0f, 8, 8, 64, 64);
+        HudBlit.sprite(graphics, skin, cx - side / 2, cy - side / 2, side, side, 8.0f, 8.0f, 8, 8, 64, 64);
+        HudBlit.sprite(graphics, skin, cx - side / 2, cy - side / 2, side, side, 40.0f, 8.0f, 8, 8, 64, 64);
     }
 
     void drawBody(GuiGraphics graphics, Minecraft minecraft, int x0, int y0, int x1, int y1, int mouseX, int mouseY) {
@@ -28,8 +28,8 @@ final class PlayerPortrait {
         int h = Math.max(32, y1 - y0);
         int head = Math.min(w, h / 2);
         int cx = (x0 + x1) / 2;
-        graphics.blit(skin, cx - head / 2, y0 + 4, head, head, 8.0f, 8.0f, 8, 8, 64, 64);
-        graphics.blit(skin, cx - head / 2, y0 + 4 + head, head, head, 20.0f, 20.0f, 8, 8, 64, 64);
+        HudBlit.sprite(graphics, skin, cx - head / 2, y0 + 4, head, head, 8.0f, 8.0f, 8, 8, 64, 64);
+        HudBlit.sprite(graphics, skin, cx - head / 2, y0 + 4 + head, head, head, 20.0f, 20.0f, 8, 8, 64, 64);
     }
 
     private static ResourceLocation texture(Minecraft minecraft) {

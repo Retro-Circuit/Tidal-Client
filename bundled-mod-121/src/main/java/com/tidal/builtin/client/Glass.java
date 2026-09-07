@@ -33,7 +33,7 @@ public final class Glass {
 
     public static void logo(GuiGraphics graphics, int x, int y, int size) {
         GuiTextures.ensure(net.minecraft.client.Minecraft.getInstance());
-        graphics.blit(GuiTextures.LOGO, x, y, 0, 0, size, size, size, size);
+        HudBlit.image(graphics, GuiTextures.LOGO, x, y, size);
     }
 
     static void row(GuiGraphics graphics, int x, int y, int w, int h, boolean hot) {
