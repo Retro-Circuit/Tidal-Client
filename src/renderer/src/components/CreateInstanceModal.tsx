@@ -87,7 +87,8 @@ export function CreateInstanceModal({
       onCreated()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const raw = err instanceof Error ? err.message : String(err)
+      setError(raw.replace(/^Error invoking remote method '[^']+':\s*/, '') || 'Could not create the instance.')
     } finally {
       setBusy(false)
     }

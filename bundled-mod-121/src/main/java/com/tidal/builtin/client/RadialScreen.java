@@ -16,7 +16,7 @@ public class RadialScreen extends Screen {
     private final PlayerPortrait portrait = new PlayerPortrait();
     private int hovered = -1;
     private boolean resolved;
-    private boolean armed;
+    private int holdTicks;
 
     public RadialScreen() {
         super(Component.literal("Tidal"));
@@ -38,11 +38,11 @@ public class RadialScreen extends Screen {
             return;
         }
         boolean down = TidalBuiltin.menuDown(minecraft);
-        if (!down) {
-            this.armed = true;
+        if (down) {
+            this.holdTicks++;
             return;
         }
-        if (this.armed) {
+        if (this.holdTicks >= 4) {
             this.confirm();
         }
     }

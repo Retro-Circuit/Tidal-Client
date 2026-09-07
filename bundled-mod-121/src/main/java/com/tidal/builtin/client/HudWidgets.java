@@ -28,8 +28,49 @@ final class HudWidgets {
             new Widget("Combo", () -> TidalMods.comboX, () -> TidalMods.comboY, () -> TidalMods.comboScale,
                 (x) -> TidalMods.comboX = x, (y) -> TidalMods.comboY = y, (s) -> TidalMods.comboScale = s,
                 StatHuds.comboWidth(Minecraft.getInstance()), StatHuds.textHeight(),
-                (g, mc, x, y) -> StatHuds.drawCombo(g, mc, 0, 0, true))
+                (g, mc, x, y) -> StatHuds.drawCombo(g, mc, 0, 0, true)),
+            extra("Coords", () -> PlayMods.coordsX, () -> PlayMods.coordsY, () -> PlayMods.coordsScale,
+                (x) -> PlayMods.coordsX = x, (y) -> PlayMods.coordsY = y, (s) -> PlayMods.coordsScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawCoords(g, mc, 0, 0, true)),
+            extra("Nether", () -> PlayMods.netherX, () -> PlayMods.netherY, () -> PlayMods.netherScale,
+                (x) -> PlayMods.netherX = x, (y) -> PlayMods.netherY = y, (s) -> PlayMods.netherScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawNether(g, mc, 0, 0, true)),
+            extra("Compass", () -> PlayMods.compassX, () -> PlayMods.compassY, () -> PlayMods.compassScale,
+                (x) -> PlayMods.compassX = x, (y) -> PlayMods.compassY = y, (s) -> PlayMods.compassScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawCompass(g, mc, 0, 0, true)),
+            extra("Biome", () -> PlayMods.biomeX, () -> PlayMods.biomeY, () -> PlayMods.biomeScale,
+                (x) -> PlayMods.biomeX = x, (y) -> PlayMods.biomeY = y, (s) -> PlayMods.biomeScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawBiome(g, mc, 0, 0, true)),
+            extra("Clock", () -> PlayMods.clockX, () -> PlayMods.clockY, () -> PlayMods.clockScale,
+                (x) -> PlayMods.clockX = x, (y) -> PlayMods.clockY = y, (s) -> PlayMods.clockScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawClock(g, mc, 0, 0, true)),
+            extra("Speed", () -> PlayMods.speedX, () -> PlayMods.speedY, () -> PlayMods.speedScale,
+                (x) -> PlayMods.speedX = x, (y) -> PlayMods.speedY = y, (s) -> PlayMods.speedScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawSpeed(g, mc, 0, 0, true)),
+            extra("Memory", () -> PlayMods.memoryX, () -> PlayMods.memoryY, () -> PlayMods.memoryScale,
+                (x) -> PlayMods.memoryX = x, (y) -> PlayMods.memoryY = y, (s) -> PlayMods.memoryScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawMemory(g, mc, 0, 0, true)),
+            extra("Server", () -> PlayMods.serverX, () -> PlayMods.serverY, () -> PlayMods.serverScale,
+                (x) -> PlayMods.serverX = x, (y) -> PlayMods.serverY = y, (s) -> PlayMods.serverScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawServer(g, mc, 0, 0, true)),
+            new Widget("Potions", () -> PlayMods.potionX < 0 ? 8 : PlayMods.potionX, () -> PlayMods.potionY, () -> PlayMods.potionScale,
+                (x) -> PlayMods.potionX = x, (y) -> PlayMods.potionY = y, (s) -> PlayMods.potionScale = s,
+                ExtraHuds.potionWidth(Minecraft.getInstance()), ExtraHuds.potionHeight(Minecraft.getInstance()),
+                (g, mc, x, y) -> ExtraHuds.drawPotions(g, mc, 0, 0, true)),
+            extra("Saturation", () -> PlayMods.satX, () -> PlayMods.satY, () -> PlayMods.satScale,
+                (x) -> PlayMods.satX = x, (y) -> PlayMods.satY = y, (s) -> PlayMods.satScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawSat(g, mc, 0, 0, true)),
+            extra("Day", () -> PlayMods.dayX, () -> PlayMods.dayY, () -> PlayMods.dayScale,
+                (x) -> PlayMods.dayX = x, (y) -> PlayMods.dayY = y, (s) -> PlayMods.dayScale = s,
+                (g, mc, x, y) -> ExtraHuds.drawDay(g, mc, 0, 0, true))
         };
+    }
+
+    private static Widget extra(String name, IntGet xGet, IntGet yGet, FloatGet scaleGet, IntSet xSet, IntSet ySet, FloatSet scaleSet, Draw draw) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return new Widget(name,
+            () -> xGet.get() < 0 ? Math.max(8, minecraft.getWindow().getGuiScaledWidth() - 80) : xGet.get(),
+            yGet, scaleGet, xSet, ySet, scaleSet, 80, StatHuds.textHeight(), draw);
     }
 
     static final class Widget {

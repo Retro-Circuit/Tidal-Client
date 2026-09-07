@@ -4,22 +4,39 @@ import {
   getQuiltLoaderVersionsByMinecraft
 } from '@xmcl/installer'
 import type { ModLoaderId, VersionManifest } from '../shared/types'
+import { withRetries } from './errors'
 
-const MANIFEST_URL = 'https://launchermeta.mojang.com/mc/game/version_manifest_v2.json'
+const MANIFEST_URLS = [
+  'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',
+  'https://launchermeta.mojang.com/mc/game/version_manifest_v2.json'
+]
 const USER_AGENT = 'TidalClient/0.1.0 (tidal-client)'
 
 export async function fetchVersionManifest(): Promise<VersionManifest> {
-  const res = await fetch(MANIFEST_URL, { headers: { 'User-Agent': USER_AGENT } })
-  if (!res.ok) throw new Error(`Could not load Minecraft versions (${res.status})`)
-  const data = (await res.json()) as {
-    latest: { release: string; snapshot: string }
-    versions: Array<{ id: string; type: string; releaseTime: string }>
-  }
-  return {
-    latest: data.latest,
-    releases: data.versions.filter((v) => v.type === 'release'),
-    snapshots: data.versions.filter((v) => v.type === 'snapshot')
-  }
+  return withRetries('Minecraft versions', async () => {
+    let last = 'Could not load Minecraft versions'
+    for (const url of MANIFEST_URLS) {
+      try {
+        const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } })
+        if (!res.ok) {
+          last = `Could not load Minecraft versions (${res.status})`
+          continue
+        }
+        const data = (await res.json()) as {
+          latest: { release: string; snapshot: string }
+          versions: Array<{ id: string; type: string; releaseTime: string }>
+        }
+        return {
+          latest: data.latest,
+          releases: data.versions.filter((v) => v.type === 'release'),
+          snapshots: data.versions.filter((v) => v.type === 'snapshot')
+        }
+      } catch (error) {
+        last = error instanceof Error ? error.message : String(error)
+      }
+    }
+    throw new Error(last)
+  })
 }
 
 function neoForgePrefix(minecraftVersion: string): string {
@@ -44,7 +61,9 @@ async function fetchNeoForgeVersions(minecraftVersion: string): Promise<string[]
 export async function fetchLoaderVersions(loader: ModLoaderId, minecraftVersion: string): Promise<string[]> {
   if (loader === 'vanilla') return []
   if (loader === 'fabric') {
-    const artifacts = await getLoaderArtifactListFor(minecraftVersion)
+    const artifacts = await withRetries(`Fabric versions for ${minecraftVersion}`, () =>
+      getLoaderArtifactListFor(minecraftVersion)
+    )
     return artifacts.map((item) => item.loader.version)
   }
   if (loader === 'quilt') {

@@ -1,6 +1,7 @@
 package com.tidal.builtin.mixin;
 
 import com.tidal.builtin.client.ArmorHud;
+import com.tidal.builtin.client.ExtraHuds;
 import com.tidal.builtin.client.KeystrokesHud;
 import com.tidal.builtin.client.StatHuds;
 import net.minecraft.client.DeltaTracker;
@@ -20,6 +21,7 @@ public class HudMixin {
             KeystrokesHud.extract(graphics, Minecraft.getInstance());
             ArmorHud.extract(graphics, Minecraft.getInstance());
             StatHuds.extract(graphics, Minecraft.getInstance());
+            ExtraHuds.extract(graphics, Minecraft.getInstance());
         } catch (Throwable ignored) {
         }
     }

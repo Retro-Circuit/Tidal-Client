@@ -30,6 +30,7 @@ import { curseForgeFileDownloadUrl, fetchCurseForgeLatestFile, fetchModrinthVers
 import { findJava } from './java'
 import { injectBuiltinMod, isHiddenBuiltin } from './builtin'
 import { getInstances, getSettings, removeInstance, upsertInstance } from './store'
+import { flattenError, withRetries } from './errors'
 import { fetchLoaderVersions } from './versions'
 
 export function minecraftRoot(): string {
@@ -76,10 +77,22 @@ interface LoaderPlan {
 
 async function ensureMinecraft(version: string, onProgress: (msg: string) => void): Promise<void> {
   onProgress(`Installing Minecraft ${version}`)
-  const list = await getVersionList()
+  const list = await loadVersionList()
   const meta = list.versions.find((v) => v.id === version)
   if (!meta) throw new Error(`Minecraft ${version} was not found in the version manifest`)
-  await install(meta, minecraftRoot())
+  await withRetries(`Minecraft ${version} files`, () => install(meta, minecraftRoot()))
+}
+
+async function loadVersionList(): Promise<{ versions: Array<{ id: string; url?: string; type?: string }> }> {
+  try {
+    return await withRetries('Minecraft version list', () => getVersionList())
+  } catch (first) {
+    const res = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json', {
+      headers: { 'User-Agent': 'TidalClient/0.1.0 (tidal-client)' }
+    })
+    if (!res.ok) throw new Error(flattenError(first))
+    return (await res.json()) as { versions: Array<{ id: string; url?: string; type?: string }> }
+  }
 }
 
 async function installLoader(plan: LoaderPlan, onProgress: (msg: string) => void): Promise<string> {
@@ -91,11 +104,13 @@ async function installLoader(plan: LoaderPlan, onProgress: (msg: string) => void
   onProgress(`Installing ${loader} ${plan.loaderVersion}`)
 
   if (loader === 'fabric') {
-    return await installFabric({
-      minecraft: root,
-      minecraftVersion: plan.minecraftVersion,
-      version: plan.loaderVersion
-    })
+    return await withRetries(`Fabric ${plan.loaderVersion}`, () =>
+      installFabric({
+        minecraft: root,
+        minecraftVersion: plan.minecraftVersion,
+        version: plan.loaderVersion
+      })
+    )
   }
 
   if (loader === 'quilt') {
@@ -124,11 +139,13 @@ async function installLoader(plan: LoaderPlan, onProgress: (msg: string) => void
       const fabricVersions = await fetchLoaderVersions('fabric', plan.minecraftVersion)
       const fabricVersion = fabricVersions[0]
       if (fabricVersion) {
-        return await installFabric({
-          minecraft: root,
-          minecraftVersion: plan.minecraftVersion,
-          version: fabricVersion
-        })
+        return await withRetries(`Fabric ${fabricVersion}`, () =>
+          installFabric({
+            minecraft: root,
+            minecraftVersion: plan.minecraftVersion,
+            version: fabricVersion
+          })
+        )
       }
     } catch {
       // No Fabric for this version; copy the jar anyway.
@@ -372,7 +389,7 @@ export async function createCustomInstance(request: CreateInstanceRequest): Prom
     return instance
   } catch (error) {
     await rm(instanceDir, { recursive: true, force: true })
-    throw error
+    throw new Error(flattenError(error))
   }
 }
 

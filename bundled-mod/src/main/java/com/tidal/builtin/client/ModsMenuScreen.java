@@ -79,13 +79,35 @@ public class ModsMenuScreen extends TidalPanelScreen {
                 list.add(mod("Keystrokes", "WASD and click indicators", () -> TidalMods.keystrokes, v -> TidalMods.keystrokes = v, KeystrokesMenuScreen::new));
                 list.add(mod("Armor Status", "Durability, icons, and armor value", () -> TidalMods.armor, v -> TidalMods.armor = v, ArmorMenuScreen::new));
                 list.add(mod("FPS & Ping", "Frames and server latency", () -> TidalMods.fpsPing, v -> TidalMods.fpsPing = v, () -> new ToggleModScreen("FPS & Ping", "Enable FPS and ping", () -> TidalMods.fpsPing, v -> TidalMods.fpsPing = v)));
+                list.add(mod("Coordinates", "XYZ position", () -> PlayMods.coords, v -> PlayMods.coords = v, () -> new ToggleModScreen("Coordinates", "Show XYZ", () -> PlayMods.coords, v -> PlayMods.coords = v)));
+                list.add(mod("Nether Coords", "Overworld or Nether conversion", () -> PlayMods.netherCoords, v -> PlayMods.netherCoords = v, () -> new ToggleModScreen("Nether Coords", "Show portal math", () -> PlayMods.netherCoords, v -> PlayMods.netherCoords = v)));
+                list.add(mod("Compass", "Facing direction", () -> PlayMods.compass, v -> PlayMods.compass = v, () -> new ToggleModScreen("Compass", "Show facing", () -> PlayMods.compass, v -> PlayMods.compass = v)));
+                list.add(mod("Biome", "Current biome name", () -> PlayMods.biome, v -> PlayMods.biome = v, () -> new ToggleModScreen("Biome", "Show biome", () -> PlayMods.biome, v -> PlayMods.biome = v)));
+                list.add(mod("Clock", "In-world time", () -> PlayMods.clock, v -> PlayMods.clock = v, () -> new ToggleModScreen("Clock", "Show world clock", () -> PlayMods.clock, v -> PlayMods.clock = v)));
+                list.add(mod("Speedometer", "Horizontal speed", () -> PlayMods.speedometer, v -> PlayMods.speedometer = v, () -> new ToggleModScreen("Speedometer", "Show speed", () -> PlayMods.speedometer, v -> PlayMods.speedometer = v)));
+                list.add(mod("Memory", "Java heap usage", () -> PlayMods.memory, v -> PlayMods.memory = v, () -> new ToggleModScreen("Memory", "Show memory", () -> PlayMods.memory, v -> PlayMods.memory = v)));
+                list.add(mod("Server IP", "Current server address", () -> PlayMods.serverIp, v -> PlayMods.serverIp = v, () -> new ToggleModScreen("Server IP", "Show server", () -> PlayMods.serverIp, v -> PlayMods.serverIp = v)));
+                list.add(mod("Potion HUD", "Active effect timers", () -> PlayMods.potionHud, v -> PlayMods.potionHud = v, () -> new ToggleModScreen("Potion HUD", "Show effects", () -> PlayMods.potionHud, v -> PlayMods.potionHud = v)));
+                list.add(mod("Saturation", "Hidden food saturation", () -> PlayMods.saturation, v -> PlayMods.saturation = v, () -> new ToggleModScreen("Saturation", "Show saturation", () -> PlayMods.saturation, v -> PlayMods.saturation = v)));
+                list.add(mod("Day Counter", "World day number", () -> PlayMods.dayCounter, v -> PlayMods.dayCounter = v, () -> new ToggleModScreen("Day Counter", "Show day", () -> PlayMods.dayCounter, v -> PlayMods.dayCounter = v)));
             }
             case 2 -> {
                 list.add(mod("Auto GG", "Sends gg when you die or get a kill", () -> TidalMods.autoGg, v -> TidalMods.autoGg = v, () -> new ToggleModScreen("Auto GG", "Enable auto GG", () -> TidalMods.autoGg, v -> TidalMods.autoGg = v)));
                 list.add(mod("Streamer Mode", "Hides names as the first four letters plus …", () -> TidalMods.streamerMode, v -> TidalMods.streamerMode = v, () -> new ToggleModScreen("Streamer Mode", "Enable streamer mode", () -> TidalMods.streamerMode, v -> TidalMods.streamerMode = v)));
                 list.add(mod("Bedrock Detector", "Badge next to Geyser/Floodgate players", () -> TidalMods.bedrockDetect, v -> TidalMods.bedrockDetect = v, () -> new ToggleModScreen("Bedrock Detector", "Enable Bedrock detector", () -> TidalMods.bedrockDetect, v -> TidalMods.bedrockDetect = v)));
+                list.add(mod("Toggle Sprint", "Sprint stays on while moving", () -> PlayMods.toggleSprint, v -> PlayMods.toggleSprint = v, () -> new ToggleModScreen("Toggle Sprint", "Enable toggle sprint", () -> PlayMods.toggleSprint, v -> PlayMods.toggleSprint = v)));
+                list.add(mod("Toggle Sneak", "Use vanilla sneak toggle", () -> PlayMods.toggleSneak, v -> PlayMods.toggleSneak = v, () -> new ToggleModScreen("Toggle Sneak", "Enable toggle sneak", () -> PlayMods.toggleSneak, v -> PlayMods.toggleSneak = v)));
+                list.add(mod("Chat Timestamps", "Prefix chat with the local time", () -> PlayMods.chatTimestamps, v -> PlayMods.chatTimestamps = v, () -> new ToggleModScreen("Chat Timestamps", "Enable timestamps", () -> PlayMods.chatTimestamps, v -> PlayMods.chatTimestamps = v)));
+                list.add(mod("Zoom", "Hold C to zoom the camera", () -> PlayMods.zoom, v -> PlayMods.zoom = v, () -> new ToggleModScreen("Zoom", "Hold C to zoom", () -> PlayMods.zoom, v -> PlayMods.zoom = v)));
             }
-            case 3 -> list.add(mod("Low Fire", "Lower first-person fire overlay", () -> TidalMods.lowFire, v -> TidalMods.lowFire = v, () -> new ToggleModScreen("Low Fire", "Enable low fire", () -> TidalMods.lowFire, v -> TidalMods.lowFire = v)));
+            case 3 -> {
+                list.add(mod("Low Fire", "Lower first-person fire overlay", () -> TidalMods.lowFire, v -> TidalMods.lowFire = v, () -> new ToggleModScreen("Low Fire", "Enable low fire", () -> TidalMods.lowFire, v -> TidalMods.lowFire = v)));
+                list.add(mod("Fullbright", "Max gamma so caves stay readable", () -> PlayMods.fullbright, v -> PlayMods.fullbright = v, () -> new ToggleModScreen("Fullbright", "Enable fullbright", () -> PlayMods.fullbright, v -> PlayMods.fullbright = v)));
+                list.add(mod("Hide Scoreboard", "Remove the sidebar scoreboard", () -> PlayMods.hideScoreboard, v -> PlayMods.hideScoreboard = v, () -> new ToggleModScreen("Hide Scoreboard", "Hide sidebar", () -> PlayMods.hideScoreboard, v -> PlayMods.hideScoreboard = v)));
+                list.add(mod("Hide Boss Bar", "Remove boss health bars", () -> PlayMods.hideBossBar, v -> PlayMods.hideBossBar = v, () -> new ToggleModScreen("Hide Boss Bar", "Hide boss bars", () -> PlayMods.hideBossBar, v -> PlayMods.hideBossBar = v)));
+                list.add(mod("Hide Pumpkin", "No carved pumpkin overlay", () -> PlayMods.hidePumpkin, v -> PlayMods.hidePumpkin = v, () -> new ToggleModScreen("Hide Pumpkin", "Hide pumpkin blur", () -> PlayMods.hidePumpkin, v -> PlayMods.hidePumpkin = v)));
+                list.add(mod("No Vignette", "Remove the darkness vignette", () -> PlayMods.noVignette, v -> PlayMods.noVignette = v, () -> new ToggleModScreen("No Vignette", "Hide vignette", () -> PlayMods.noVignette, v -> PlayMods.noVignette = v)));
+            }
             default -> list.add(mod("Tidal Boost", companionsHint(), () -> TidalMods.boost, v -> TidalMods.boost = v, PerformanceMenuScreen::new));
         }
         return list;

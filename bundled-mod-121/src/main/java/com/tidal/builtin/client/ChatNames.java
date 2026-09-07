@@ -33,10 +33,15 @@ public final class ChatNames {
     }
 
     public static Component rewrite(Component source) {
-        if (source == null || (!TidalMods.streamerMode && !TidalMods.bedrockDetect)) {
-            return source;
+        Component rewritten = source;
+        if (source != null && (TidalMods.streamerMode || TidalMods.bedrockDetect)) {
+            rewritten = copy(source);
         }
-        return copy(source);
+        if (rewritten == null || !PlayMods.chatTimestamps) {
+            return rewritten;
+        }
+        String time = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+        return Component.literal("[" + time + "] ").append(rewritten);
     }
 
     private static MutableComponent copy(Component source) {

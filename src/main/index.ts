@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } from 'electron'
+import dns from 'node:dns'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loginWithMicrosoft, logout, restoreSession } from './auth'
+import { flattenError } from './errors'
 import { fetchProjectDetails, searchModpacks } from './discover'
 import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, importForeignInstances, importInstanceMods, installContentToInstance, installModpack, listInstanceMods } from './install'
 import { scanForeignInstances } from './importScan'
@@ -34,6 +36,8 @@ function resolveAppIcon(): string {
 }
 
 const isDev = !app.isPackaged
+
+dns.setDefaultResultOrder('ipv4first')
 
 app.commandLine.appendSwitch('enable-gpu-rasterization')
 app.commandLine.appendSwitch('enable-zero-copy')
@@ -119,12 +123,34 @@ app.whenReady().then(async () => {
   ipcMain.handle('instance:list', () => getInstances())
   ipcMain.handle('instance:scan-foreign', () => scanForeignInstances())
   ipcMain.handle('instance:import-foreign', (_e, items: ForeignInstance[]) => importForeignInstances(items))
-  ipcMain.handle('instance:install', (_e, pack: ModpackCard) => installModpack(pack))
-  ipcMain.handle('instance:install-content', (_e, pack: ModpackCard, instanceId: string) =>
-    installContentToInstance(pack, instanceId)
-  )
-  ipcMain.handle('instance:create', (_e, request: CreateInstanceRequest) => createCustomInstance(request))
-  ipcMain.handle('instance:vanilla', (_e, version?: string) => createVanillaInstance(version))
+  ipcMain.handle('instance:create', async (_e, request: CreateInstanceRequest) => {
+    try {
+      return await createCustomInstance(request)
+    } catch (error) {
+      throw new Error(flattenError(error))
+    }
+  })
+  ipcMain.handle('instance:vanilla', async (_e, version?: string) => {
+    try {
+      return await createVanillaInstance(version)
+    } catch (error) {
+      throw new Error(flattenError(error))
+    }
+  })
+  ipcMain.handle('instance:install', async (_e, pack: ModpackCard) => {
+    try {
+      return await installModpack(pack)
+    } catch (error) {
+      throw new Error(flattenError(error))
+    }
+  })
+  ipcMain.handle('instance:install-content', async (_e, pack: ModpackCard, instanceId: string) => {
+    try {
+      return await installContentToInstance(pack, instanceId)
+    } catch (error) {
+      throw new Error(flattenError(error))
+    }
+  })
   ipcMain.handle('instance:mods', (_e, instanceId: string) => listInstanceMods(instanceId))
   ipcMain.handle('instance:import-mods', (_e, instanceId: string, paths: string[]) =>
     importInstanceMods(instanceId, paths)

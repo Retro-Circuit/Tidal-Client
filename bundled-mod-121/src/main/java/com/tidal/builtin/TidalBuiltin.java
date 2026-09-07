@@ -1,10 +1,11 @@
 package com.tidal.builtin;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.tidal.builtin.client.AccountCapes;
 import com.tidal.builtin.client.CapeShare;
 import com.tidal.builtin.client.Capes;
 import com.tidal.builtin.client.HudRuntime;
+import com.tidal.builtin.client.MenuKeys;
+import com.tidal.builtin.client.PlayFeatures;
 import com.tidal.builtin.client.LayoutMenuScreen;
 import com.tidal.builtin.client.RadialScreen;
 import com.tidal.builtin.client.TidalMods;
@@ -25,10 +26,18 @@ public class TidalBuiltin implements ClientModInitializer {
     }
 
     public static boolean menuDown(Minecraft minecraft) {
-        return InputConstants.isKeyDown(minecraft.getWindow().getWindow(), TidalMods.menuKey);
+        try {
+            return MenuKeys.isDown(minecraft);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     public static void tick(Minecraft minecraft) {
+        try {
+            MenuKeys.ensureInstalled(minecraft);
+        } catch (Throwable ignored) {
+        }
         try {
             Capes.tick(minecraft);
         } catch (Throwable ignored) {
@@ -45,16 +54,20 @@ public class TidalBuiltin implements ClientModInitializer {
             HudRuntime.tick(minecraft);
         } catch (Throwable ignored) {
         }
+        try {
+            PlayFeatures.tick(minecraft);
+        } catch (Throwable ignored) {
+        }
         if (minecraft.player == null || minecraft.level == null) {
             return;
         }
-        boolean down;
+        boolean down = menuDown(minecraft);
+        boolean pressed = false;
         try {
-            down = menuDown(minecraft);
+            pressed = MenuKeys.consumePress() || (down && !menuHeld);
         } catch (Throwable ignored) {
-            return;
+            pressed = down && !menuHeld;
         }
-        boolean pressed = down && !menuHeld;
         menuHeld = down;
 
         Screen current = minecraft.screen;

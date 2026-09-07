@@ -12,6 +12,9 @@
     "ChatComponentMixin",
     "PlayerTabOverlayMixin",
     "GameRendererMixin",
+    "KeyboardHandlerMixin",
+    "OverlayHideMixin",
+    "BossBarHideMixin",
     "MultiPlayerGameModeMixin",
     "ParticleEngineMixin",
     "OptionsMixin"

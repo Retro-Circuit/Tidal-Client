@@ -114,6 +114,7 @@ public final class TidalMods {
                 boostParticles = bool(p, "boostParticles", true);
                 boostUnfocused = bool(p, "boostUnfocused", true);
                 boostClouds = bool(p, "boostClouds", true);
+                PlayMods.load(p);
                 equippedCape = p.getProperty("equippedCape", "");
                 equippedSkin = p.getProperty("equippedSkin", "");
                 ownedCapes.clear();
@@ -216,6 +217,7 @@ public final class TidalMods {
             p.setProperty("boostParticles", Boolean.toString(boostParticles));
             p.setProperty("boostUnfocused", Boolean.toString(boostUnfocused));
             p.setProperty("boostClouds", Boolean.toString(boostClouds));
+            PlayMods.save(p);
             p.setProperty("equippedCape", equippedCape);
             p.setProperty("equippedSkin", equippedSkin);
             p.setProperty("ownedCapes", String.join(",", ownedCapes.stream().filter(id -> !Capes.isExclusive(id)).toList()));
