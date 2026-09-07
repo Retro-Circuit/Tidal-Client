@@ -1,0 +1,17 @@
+{
+  "capes": [
+    {
+      "id": "blu",
+      "name": "Blu",
+      "price": 100,
+      "file": "blu.png"
+    },
+    {
+      "id": "blzxy",
+      "name": "BLZXY",
+      "price": 0,
+      "file": "blzxy.png",
+      "exclusive": "_BLZXY"
+    }
+  ]
+}

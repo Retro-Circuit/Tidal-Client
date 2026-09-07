@@ -1,27 +1,26 @@
-import { resolve } from 'path'
+import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   main: {
-    resolve: {
-      alias: {
-        '@xmcl/unzip': resolve(__dirname, 'node_modules/@xmcl/unzip/dist/index.js'),
-        '@xmcl/core': resolve(__dirname, 'node_modules/@xmcl/core/dist/index.js'),
-        '@xmcl/installer': resolve(__dirname, 'node_modules/@xmcl/installer/dist/index.js'),
-        '@xmcl/user': resolve(__dirname, 'node_modules/@xmcl/user/dist/index.js')
-      }
-    },
-    build: {
-      rollupOptions: {
-        // Keep standard Node built-ins external, but force @xmcl to bundle
-        external: ['electron', 'crypto', 'fs', 'path', 'os', 'child_process', 'stream', 'util', 'events', 'http', 'https', 'zlib']
-      }
-    }
-    // Notice: externalizeDepsPlugin() is completely removed from main!
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ['@xmcl/installer', '@xmcl/core', '@xmcl/unzip']
+      })
+    ]
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        output: {
+          format: 'cjs',
+          entryFileNames: 'index.cjs'
+        }
+      }
+    }
   },
   renderer: {
     resolve: {
@@ -29,6 +28,7 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [react()]
+    publicDir: resolve('src/renderer/public'),
+    plugins: [react(), tailwindcss()]
   }
 })

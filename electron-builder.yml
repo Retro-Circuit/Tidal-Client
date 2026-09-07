@@ -1,0 +1,38 @@
+appId: com.tidal.client
+productName: Tidal Client
+copyright: Copyright © Retro
+asar: true
+npmRebuild: false
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: tidal.png
+    to: tidal.png
+  - from: resources/tidal-builtin.jar
+    to: tidal-builtin.jar
+  - from: capes
+    to: capes
+asarUnpack:
+  - '**/*.node'
+win:
+  icon: tidal.png
+  executableName: TidalClient
+  target:
+    - nsis
+    - portable
+  artifactName: TidalClient-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Tidal Client
+  uninstallDisplayName: Tidal Client
+  artifactName: TidalClient-Setup-${version}.${ext}
+portable:
+  artifactName: TidalClient-${version}-portable.exe

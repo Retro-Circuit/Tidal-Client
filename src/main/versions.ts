@@ -1,16 +1,8 @@
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
-
-const {
-  installFabric,
-  installQuiltVersion,
-  installNeoForged,
-  installForge,
-  installDependencies,
-  getVersionList,
-  install
-} = require('@xmcl/installer')
-
+import {
+  getForgeVersionList,
+  getLoaderArtifactListFor,
+  getQuiltLoaderVersionsByMinecraft
+} from '@xmcl/installer'
 import type { ModLoaderId, VersionManifest } from '../shared/types'
 
 const MANIFEST_URL = 'https://launchermeta.mojang.com/mc/game/version_manifest_v2.json'

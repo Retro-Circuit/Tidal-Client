@@ -5,51 +5,66 @@ import type { SessionState } from '../../../shared/types'
 type TopBarProps = {
   session: SessionState
   loggingIn: boolean
+  loginError?: string | null
   onLogin: () => void
   onLogout: () => void
 }
 
-export function TopBar({ session, loggingIn, onLogin, onLogout }: TopBarProps) {
+export function TopBar({ session, loggingIn, loginError, onLogin, onLogout }: TopBarProps) {
   return (
-    <header className="drag-region flex h-14 items-center justify-between border-b border-line px-5">
-      <div className="flex items-center gap-2">
-        <img src={tidalLogo} alt="" className="h-6 w-6 aspect-square rounded-md object-cover" />
-        <p className="text-xs uppercase tracking-[0.28em] text-mute">Tidal</p>
+    <header className="relative flex h-12 shrink-0 items-center justify-between border-b border-line/80 bg-ink/90 px-3">
+      <div className="titlebar-drag absolute inset-y-0 left-0 right-36" />
+      <div className="relative z-10 flex items-center gap-3 pl-2">
+        <img src={tidalLogo} alt="" className="h-8 w-8 rounded-md object-cover" />
+        <p className="text-[11px] uppercase tracking-[0.22em] text-mute">Tidal</p>
       </div>
-      <div className="no-drag flex items-center gap-3">
+      <div className="relative z-10 flex items-center gap-2">
+        {loginError ? <p className="max-w-xs truncate text-xs text-red-300">{loginError}</p> : null}
         {session.loggedIn && session.profile ? (
           <button
+            type="button"
             onClick={onLogout}
-            className="flex items-center gap-2 rounded-full border border-line bg-raised py-1 pr-3 pl-1 transition hover:border-tidal/60"
+            className="flex items-center gap-2 rounded-full bg-panel py-1 pr-3 pl-1 transition hover:bg-raised"
             title="Sign out"
           >
             <img
               src={session.profile.avatar}
               alt=""
-              className="h-7 w-7 aspect-square rounded-full object-cover ring-2 ring-tidal"
+              className="h-6 w-6 rounded-full object-cover"
             />
             <span className="text-sm text-mist">{session.profile.name}</span>
           </button>
         ) : (
           <button
+            type="button"
             onClick={onLogin}
             disabled={loggingIn}
-            className="rounded-full bg-tidal px-4 py-1.5 text-sm font-medium shadow-[0_0_18px_rgba(3,73,252,0.5)] transition hover:brightness-110 disabled:opacity-60"
+            className="rounded-full bg-tidal px-3 py-1.5 text-sm font-medium transition hover:brightness-110 disabled:opacity-60"
           >
             {loggingIn ? 'Signing in…' : 'Login with Microsoft'}
           </button>
         )}
-        <div className="ml-2 flex items-center">
-          <button onClick={() => window.tidal.minimize()} className="p-2 text-mute hover:text-white">
-            <Minus size={14} />
-          </button>
-          <button onClick={() => window.tidal.maximize()} className="p-2 text-mute hover:text-white">
-            <Square size={12} />
-          </button>
-          <button onClick={() => window.tidal.close()} className="p-2 text-mute hover:text-red-400">
-            <X size={14} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => window.tidal.minimize()}
+          className="p-2 text-mute transition hover:text-white"
+        >
+          <Minus size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => window.tidal.maximize()}
+          className="p-2 text-mute transition hover:text-white"
+        >
+          <Square size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={() => window.tidal.close()}
+          className="p-2 text-mute transition hover:text-red-400"
+        >
+          <X size={14} />
+        </button>
       </div>
     </header>
   )

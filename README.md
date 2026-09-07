@@ -13,11 +13,26 @@ The old `@xmcl/minecraft-launcher-core` meta-package (last published 2019) is no
 
 ## Setup
 
+Needs **Node 20+**. For a Windows `.exe`, also needs the usual Visual C++ runtime on the machine that *runs* the app (Windows already has it).
+
 ```bash
-cd Desktop/Coding/tidal-client
 npm install
 npm run dev
 ```
+
+### Package a Windows .exe
+
+```bash
+npm install
+npm run dist
+```
+
+That compiles the launcher and writes installers to `release/`:
+
+- `TidalClient-Setup-<version>.exe` — NSIS installer (choose install folder)
+- `TidalClient-<version>-portable.exe` — single portable exe, no install
+
+`npm run dist:full` builds the bundled Fabric mod with Gradle first (JDK 25), then the exe. `npm run dist:dir` unpacks the app into `release/win-unpacked/` for a quick local test without wrapping an installer.
 
 ### CurseForge
 
@@ -41,3 +56,4 @@ Use **Login with Microsoft** in the top right. You need a Microsoft account that
 - `src/renderer` — React UI
 - `src/shared` — Shared TypeScript types
 "# tidal-client" 
+"# congenial-telegram" 

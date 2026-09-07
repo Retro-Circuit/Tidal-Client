@@ -1,0 +1,29 @@
+{
+  "required": false,
+  "package": "com.tidal.builtin.mixin",
+  "plugin": "com.tidal.builtin.mixin.TidalMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftMixin",
+    "ClientBrandRetrieverMixin",
+    "HudMixin",
+    "TitleScreenMixin",
+    "PlayerSkinMixin",
+    "ChatScreenMixin",
+    "ChatComponentMixin",
+    "PlayerTabOverlayMixin",
+    "EntityRendererMixin",
+    "EntityRenderDispatcherMixin",
+    "WeatherEffectRendererMixin",
+    "ClientPacketListenerMixin",
+    "GameRendererMixin",
+    "ScreenEffectRendererMixin",
+    "MultiPlayerGameModeMixin",
+    "ParticleEngineMixin",
+    "FramerateLimitTrackerMixin",
+    "OptionsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

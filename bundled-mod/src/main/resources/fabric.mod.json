@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "tidal-builtin",
+  "version": "${version}",
+  "name": "Tidal Client",
+  "description": "Tidal Client menu, skins, and cooperative performance helpers",
+  "authors": ["Tidal Client"],
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.tidal.builtin.TidalBuiltin"]
+  },
+  "mixins": ["tidal-builtin.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "minecraft": "*",
+    "java": ">=21"
+  },
+  "custom": {
+    "modmenu:api": true
+  }
+}

@@ -1,21 +1,34 @@
 import { BrowserWindow, app } from 'electron'
-import { createWriteStream } from 'node:fs'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { createWriteStream, existsSync, readdirSync, statSync } from 'node:fs'
+import { mkdir, rm, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 import { randomUUID } from 'node:crypto'
 import { Version } from '@xmcl/core'
 import AdmZip from 'adm-zip'
-
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
-const installer = require('@xmcl/installer')
-
-import type { CreateInstanceRequest, GameInstance, InstallProgress, ModpackCard, ProjectType } from '../shared/types'
+import {
+  getVersionList,
+  install,
+  installDependencies,
+  installFabric,
+  installForge,
+  installNeoForged,
+  installQuiltVersion
+} from '@xmcl/installer'
+import type {
+  CreateInstanceRequest,
+  GameInstance,
+  InstallProgress,
+  InstanceModFile,
+  ModpackCard,
+  ProjectType
+} from '../shared/types'
 import { curseForgeFileDownloadUrl, fetchCurseForgeLatestFile, fetchModrinthVersion } from './discover'
 import { findJava } from './java'
-import { getSettings, getInstances, upsertInstance } from './store'
+import { injectBuiltinMod, isHiddenBuiltin } from './builtin'
+import { getInstances, getSettings, removeInstance, upsertInstance } from './store'
+import { fetchLoaderVersions } from './versions'
 
 export function minecraftRoot(): string {
   return join(app.getPath('userData'), 'minecraft')
@@ -104,10 +117,43 @@ async function installLoader(plan: LoaderPlan, onProgress: (msg: string) => void
   }
 
   if (loader === 'minecraft' || loader === 'vanilla' || !loader) {
+    onProgress('Installing Tidal menu (Fabric)')
+    try {
+      const fabricVersions = await fetchLoaderVersions('fabric', plan.minecraftVersion)
+      const fabricVersion = fabricVersions[0]
+      if (fabricVersion) {
+        return await installFabric({
+          minecraft: root,
+          minecraftVersion: plan.minecraftVersion,
+          version: fabricVersion
+        })
+      }
+    } catch {
+      // No Fabric for this version; copy the jar anyway.
+    }
     return plan.minecraftVersion
   }
 
   throw new Error(`Unsupported loader: ${plan.loader}`)
+}
+
+export async function ensureBuiltinRuntime(instance: GameInstance): Promise<GameInstance> {
+  const gameDir = join(instancesRoot(), instance.id)
+  await injectBuiltinMod(gameDir, instance.minecraftVersion)
+  if (instance.loader !== 'vanilla') return instance
+  if (instance.versionId.toLowerCase().includes('fabric')) return instance
+  const versionId = await installLoader(
+    {
+      minecraftVersion: instance.minecraftVersion,
+      loader: 'vanilla',
+      loaderVersion: ''
+    },
+    () => undefined
+  )
+  await finishVersion(versionId, () => undefined)
+  const next = { ...instance, versionId }
+  upsertInstance(next)
+  return next
 }
 
 async function finishVersion(versionId: string, onProgress: (msg: string) => void): Promise<void> {
@@ -265,6 +311,7 @@ export async function installModpack(pack: ModpackCard): Promise<GameInstance> {
 
     const versionId = await installLoader(plan, (message) => report('loader', message))
     await finishVersion(versionId, (message) => report('assets', message))
+    await injectBuiltinMod(instanceDir, plan.minecraftVersion)
 
     const instance: GameInstance = {
       id,
@@ -291,34 +338,40 @@ export async function installModpack(pack: ModpackCard): Promise<GameInstance> {
 
 export async function createCustomInstance(request: CreateInstanceRequest): Promise<GameInstance> {
   const id = randomUUID()
-  await prepareInstanceDir(id)
+  const instanceDir = await prepareInstanceDir(id)
   const report = (message: string): void => {
     sendProgress({ instanceId: id, phase: 'create', message, progress: 0, total: 0 })
   }
-  const versionId = await installLoader(
-    {
+  try {
+    const versionId = await installLoader(
+      {
+        minecraftVersion: request.minecraftVersion,
+        loader: request.loader,
+        loaderVersion: request.loaderVersion
+      },
+      report
+    )
+    await finishVersion(versionId, report)
+    await injectBuiltinMod(instanceDir, request.minecraftVersion)
+    const instance: GameInstance = {
+      id,
+      name: request.name.trim() || `${request.loader} ${request.minecraftVersion}`,
+      source: request.loader === 'vanilla' ? 'vanilla' : 'custom',
+      sourceId: `${request.loader}:${request.minecraftVersion}`,
+      iconUrl: '',
       minecraftVersion: request.minecraftVersion,
       loader: request.loader,
-      loaderVersion: request.loaderVersion
-    },
-    report
-  )
-  await finishVersion(versionId, report)
-  const instance: GameInstance = {
-    id,
-    name: request.name.trim() || `${request.loader} ${request.minecraftVersion}`,
-    source: request.loader === 'vanilla' ? 'vanilla' : 'custom',
-    sourceId: `${request.loader}:${request.minecraftVersion}`,
-    iconUrl: '',
-    minecraftVersion: request.minecraftVersion,
-    loader: request.loader,
-    loaderVersion: request.loaderVersion,
-    versionId,
-    createdAt: Date.now()
+      loaderVersion: request.loaderVersion,
+      versionId,
+      createdAt: Date.now()
+    }
+    upsertInstance(instance)
+    sendProgress({ instanceId: id, phase: 'done', message: 'Instance ready', progress: 1, total: 1 })
+    return instance
+  } catch (error) {
+    await rm(instanceDir, { recursive: true, force: true })
+    throw error
   }
-  upsertInstance(instance)
-  sendProgress({ instanceId: id, phase: 'done', message: 'Instance ready', progress: 1, total: 1 })
-  return instance
 }
 
 export async function createVanillaInstance(version = '1.21.4'): Promise<GameInstance> {
@@ -369,4 +422,30 @@ export async function installContentToInstance(pack: ModpackCard, instanceId: st
     total: 1
   })
   return instance
+}
+
+export function listInstanceMods(instanceId: string): InstanceModFile[] {
+  const modsDir = join(instancesRoot(), instanceId, 'mods')
+  if (!existsSync(modsDir)) return []
+  return readdirSync(modsDir)
+    .filter((fileName) => {
+      const lower = fileName.toLowerCase()
+      return (lower.endsWith('.jar') || lower.endsWith('.jar.disabled')) && !isHiddenBuiltin(fileName)
+    })
+    .map((fileName) => ({
+      fileName,
+      size: statSync(join(modsDir, fileName)).size
+    }))
+    .sort((a, b) => a.fileName.localeCompare(b.fileName))
+}
+
+export async function deleteInstanceMod(instanceId: string, fileName: string): Promise<void> {
+  const safeName = fileName.replace(/[/\\]/g, '')
+  const modPath = join(instancesRoot(), instanceId, 'mods', safeName)
+  if (existsSync(modPath)) await unlink(modPath)
+}
+
+export async function deleteInstance(instanceId: string): Promise<void> {
+  await rm(join(instancesRoot(), instanceId), { recursive: true, force: true })
+  removeInstance(instanceId)
 }

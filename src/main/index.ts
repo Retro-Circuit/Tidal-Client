@@ -1,12 +1,11 @@
-import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } from 'electron'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { unlink } from 'node:fs/promises'
 import { loginWithMicrosoft, logout, restoreSession } from './auth'
 import { fetchProjectDetails, searchModpacks } from './discover'
-import { createCustomInstance, createVanillaInstance, installContentToInstance, installModpack } from './install'
-import { launchInstance } from './launch'
-import { getInstances, getSettings, setSettings } from './store'
+import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, installContentToInstance, installModpack, listInstanceMods } from './install'
+import { launchInstance, stopInstance, getRunStatus } from './launch'
+import { claimDaily, getInstances, getSettings, getWallet, grantShadowPoints, setSettings } from './store'
 import { fetchLoaderVersions, fetchVersionManifest } from './versions'
 import type { CreateInstanceRequest, GameInstance, ModpackCard } from '../shared/types'
 
@@ -35,6 +34,10 @@ function resolveAppIcon(): string {
 
 const isDev = !app.isPackaged
 
+app.commandLine.appendSwitch('enable-gpu-rasterization')
+app.commandLine.appendSwitch('enable-zero-copy')
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion')
+
 function createWindow(): void {
   const iconPath = resolveAppIcon()
   const icon = nativeImage.createFromPath(iconPath)
@@ -45,14 +48,16 @@ function createWindow(): void {
     minHeight: 680,
     show: false,
     frame: false,
-    backgroundColor: '#121212',
+    backgroundColor: '#16181c',
     title: 'Tidal Client',
     icon: icon.isEmpty() ? undefined : icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      spellcheck: false,
+      backgroundThrottling: true
     }
   })
 
@@ -71,6 +76,7 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   loadDotEnv()
+  Menu.setApplicationMenu(null)
   const iconPath = resolveAppIcon()
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.tidal.client')
@@ -96,6 +102,10 @@ app.whenReady().then(async () => {
   ipcMain.handle('settings:get', () => getSettings())
   ipcMain.handle('settings:set', (_e, patch) => setSettings(patch))
 
+  ipcMain.handle('wallet:get', () => getWallet())
+  ipcMain.handle('wallet:claim-daily', () => claimDaily())
+  ipcMain.handle('wallet:grant-shadow', () => grantShadowPoints())
+
   ipcMain.handle('discover:search', (_e, query: string) => searchModpacks(query))
   ipcMain.handle('discover:details', (_e, card: ModpackCard) => fetchProjectDetails(card))
   ipcMain.handle('minecraft:versions', () => fetchVersionManifest())
@@ -110,36 +120,18 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle('instance:create', (_e, request: CreateInstanceRequest) => createCustomInstance(request))
   ipcMain.handle('instance:vanilla', (_e, version?: string) => createVanillaInstance(version))
-  
-  // Instance management & mod inspection bindings
-  ipcMain.handle('get-instance-mods', async (_e, instanceId: string) => {
-    const settings = getSettings()
-    const modsDir = join(settings.gameDir, 'instances', instanceId, 'mods')
-    if (!existsSync(modsDir)) return []
-    
-    const files = readdirSync(modsDir)
-    return files
-      .filter((file) => file.endsWith('.jar'))
-      .map((fileName) => ({
-        fileName,
-        size: statSync(join(modsDir, fileName)).size
-      }))
-  })
-
-  ipcMain.handle('delete-instance-mod', async (_e, { instanceId, fileName }) => {
-    const settings = getSettings()
-    const modPath = join(settings.gameDir, 'instances', instanceId, 'mods', fileName)
-    if (existsSync(modPath)) {
-      await unlink(modPath)
-    }
-    return true
-  })
-
+  ipcMain.handle('instance:mods', (_e, instanceId: string) => listInstanceMods(instanceId))
+  ipcMain.handle('instance:delete-mod', (_e, instanceId: string, fileName: string) =>
+    deleteInstanceMod(instanceId, fileName)
+  )
+  ipcMain.handle('instance:delete', (_e, instanceId: string) => deleteInstance(instanceId))
   ipcMain.handle('instance:launch', async (_e, id: string) => {
     const instance = getInstances().find((item: GameInstance) => item.id === id)
     if (!instance) return { ok: false, error: 'Instance not found' }
     return launchInstance(instance)
   })
+  ipcMain.handle('instance:stop', () => stopInstance())
+  ipcMain.handle('instance:run-state', () => getRunStatus())
 
   createWindow()
   app.on('activate', () => {

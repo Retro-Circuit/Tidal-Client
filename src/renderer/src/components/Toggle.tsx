@@ -13,14 +13,12 @@ export function Toggle({ label, checked, onChange }: ToggleProps) {
     >
       <span className="text-xs font-medium tracking-wide text-mist">{label}</span>
       <span
-        className={`relative h-5 w-9 rounded-full transition ${
-          checked ? 'bg-tidal shadow-[0_0_16px_rgba(3,73,252,0.7)]' : 'bg-[#2c2c2c]'
+        className={`relative h-5 w-9 rounded-full transition duration-200 ${
+          checked ? 'bg-tidal' : 'bg-[#2c2c2c]'
         }`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${
-            checked ? 'left-4.5' : 'left-0.5'
-          }`}
+          className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all duration-200"
           style={{ left: checked ? 18 : 2 }}
         />
       </span>

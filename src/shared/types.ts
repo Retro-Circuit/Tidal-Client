@@ -24,6 +24,13 @@ export interface AppSettings {
   javaPath: string
 }
 
+export interface WalletState {
+  points: number
+  lastDailyClaimAt: number | null
+  nextDailyAt: number
+  canClaim: boolean
+}
+
 export interface ModpackCard {
   id: string
   source: ModpackSource
@@ -76,6 +83,14 @@ export interface LaunchResult {
   error?: string
 }
 
+export type InstanceRunState = 'idle' | 'starting' | 'running'
+
+export interface InstanceRunStatus {
+  instanceId: string | null
+  state: InstanceRunState
+  error?: string
+}
+
 export interface SearchResult {
   hits: ModpackCard[]
   error?: string
@@ -100,4 +115,9 @@ export interface CreateInstanceRequest {
   minecraftVersion: string
   loader: ModLoaderId
   loaderVersion: string
+}
+
+export interface InstanceModFile {
+  fileName: string
+  size: number
 }

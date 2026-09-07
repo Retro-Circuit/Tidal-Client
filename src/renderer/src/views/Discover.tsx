@@ -17,7 +17,6 @@ export function DiscoverView({
   const [packs, setPacks] = useState<ModpackCard[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [installingId, setInstallingId] = useState<string | null>(null)
   const [progress, setProgress] = useState<InstallProgress | null>(null)
   const [selected, setSelected] = useState<ModpackCard | null>(null)
 
@@ -57,88 +56,53 @@ export function DiscoverView({
     }
   }, [debounced, sourcesKey, settings])
 
-  async function install(pack: ModpackCard): Promise<void> {
-    if (pack.projectType !== 'modpack') {
-      setSelected(pack)
-      return
-    }
-    setInstallingId(pack.id)
-    setProgress({ instanceId: pack.id, phase: 'start', message: `Installing ${pack.title}`, progress: 0, total: 0 })
-    try {
-      await window.tidal.installModpack(pack)
-      setProgress({
-        instanceId: pack.id,
-        phase: 'done',
-        message: `${pack.title} is ready in My Instances`,
-        progress: 1,
-        total: 1
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setInstallingId(null)
-    }
-  }
-
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5">
+    <div className="animate-rise flex h-full min-h-0 flex-col gap-6">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Discover</p>
-        <h2 className="mt-1 text-3xl font-semibold">Find your next world</h2>
+        <h2 className="text-3xl font-semibold tracking-tight">Discover</h2>
+        <p className="mt-1 text-sm text-mute">Click a project to read more and download.</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <label className="relative min-w-72 flex-1">
-          <Search size={16} className="absolute top-1/2 left-4 -translate-y-1/2 text-tidal" />
+          <Search size={16} className="absolute top-1/2 left-4 -translate-y-1/2 text-mute" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search mods, modpacks, and resource packs"
-            className="w-full rounded-2xl border-2 border-tidal bg-raised py-3 pr-4 pl-11 text-sm outline-none placeholder:text-mute focus:shadow-[0_0_0_4px_rgba(3,73,252,0.18)]"
+            className="w-full rounded-full border border-line bg-panel py-3 pr-4 pl-11 text-sm outline-none transition placeholder:text-mute focus:border-tidal"
           />
         </label>
         <Toggle
-          label="Modrinth Support"
+          label="Modrinth"
           checked={Boolean(settings?.modrinthEnabled)}
           onChange={(next) => onSettings({ modrinthEnabled: next })}
         />
         <Toggle
-          label="CurseForge Support"
+          label="CurseForge"
           checked={Boolean(settings?.curseforgeEnabled)}
           onChange={(next) => onSettings({ curseforgeEnabled: next })}
         />
       </div>
 
-      {progress && installingId ? (
-        <div className="rounded-xl border border-tidal/40 bg-tidal/10 px-4 py-3 text-sm text-mist">
-          <span className="font-medium text-white">{progress.phase}</span>
-          <span className="mx-2 text-mute">·</span>
-          {progress.message}
-        </div>
+      {progress?.phase === 'done' ? (
+        <div className="animate-fade-in rounded-xl bg-tidal/10 px-4 py-3 text-sm text-mist">{progress.message}</div>
       ) : null}
 
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
       {loading ? (
-        <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-[repeat(auto-fill,400px)] justify-start gap-4 overflow-y-auto pr-1 pb-8">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-[400px] w-[400px] animate-pulse rounded-md bg-raised" />
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-[92px] animate-pulse rounded-2xl bg-panel" />
           ))}
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-[repeat(auto-fill,400px)] justify-start gap-4 overflow-y-auto pr-1 pb-8">
-          {packs.map((pack) => (
-            <ModpackCardView
-              key={pack.id}
-              pack={pack}
-              installing={installingId === pack.id}
-              onOpen={() => setSelected(pack)}
-              onInstall={() => void install(pack)}
-            />
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 pb-8">
+          {packs.map((pack, index) => (
+            <ModpackCardView key={pack.id} pack={pack} index={index} onOpen={() => setSelected(pack)} />
           ))}
-          {packs.length === 0 && !error ? (
-            <p className="col-span-full text-sm text-mute">No projects match this search.</p>
-          ) : null}
+          {packs.length === 0 && !error ? <p className="text-sm text-mute">No projects match this search.</p> : null}
         </div>
       )}
 

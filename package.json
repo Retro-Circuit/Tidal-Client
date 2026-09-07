@@ -1,22 +1,59 @@
 {
   "name": "tidal-client",
-  "version": "1.0.0",
-  "description": "A dark, minimal Minecraft launcher built with Electron, React, Tailwind CSS, and TypeScript.",
-  "main": "index.js",
-  "devDependencies": {},
+  "version": "1.2.1",
+  "description": "Tidal Client — a modern Minecraft launcher",
+  "main": "./out/main/index.js",
+  "author": "Retro",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "build:mod": "node scripts/build-mod.mjs",
+    "dist": "node scripts/package-win.mjs",
+    "dist:dir": "node scripts/package-win.mjs --dir",
+    "dist:full": "node scripts/package-win.mjs --mod",
+    "package": "node scripts/package-win.mjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Retro-Circuit/tidal-client.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Retro-Circuit/tidal-client/issues"
+  "dependencies": {
+    "@xmcl/core": "2.15.1",
+    "@xmcl/installer": "^6.0.1",
+    "@xmcl/unzip": "2.1.2",
+    "@xmcl/user": "^4.4.2",
+    "adm-zip": "^0.6.0",
+    "dompurify": "^3.2.6",
+    "electron-store": "^10.1.0",
+    "lucide-react": "^0.511.0",
+    "marked": "^15.0.12",
+    "msmc": "^5.0.5"
   },
-  "homepage": "https://github.com/Retro-Circuit/tidal-client#readme"
+  "overrides": {
+    "@xmcl/unzip": "2.1.2",
+    "@xmcl/core": "2.15.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "@types/adm-zip": "^0.5.7",
+    "@types/dompurify": "^3.2.0",
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.0",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^3.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.8",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
 }

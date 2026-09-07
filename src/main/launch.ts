@@ -1,10 +1,68 @@
-import { launch } from '@xmcl/core'
+import { BrowserWindow } from 'electron'
+import { spawn, type ChildProcess } from 'node:child_process'
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { GameInstance, LaunchResult } from '../shared/types'
+import { launch, createMinecraftProcessWatcher, DEFAULT_EXTRA_JVM_ARGS } from '@xmcl/core'
+import type { GameInstance, InstanceRunStatus, LaunchResult } from '../shared/types'
 import { getAccessToken, getLiveSession } from './auth'
 import { findJava } from './java'
-import { instancesRoot, minecraftRoot } from './install'
+import { ensureBuiltinRuntime, instancesRoot, minecraftRoot } from './install'
 import { getSettings, upsertInstance } from './store'
+
+let running: { instanceId: string; process: ChildProcess; state: 'starting' | 'running' } | null = null
+let readyFallback: ReturnType<typeof setTimeout> | null = null
+
+function broadcast(status: InstanceRunStatus): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('instance:run-state', status)
+  }
+}
+
+export function getRunStatus(): InstanceRunStatus {
+  if (!running) return { instanceId: null, state: 'idle' }
+  return { instanceId: running.instanceId, state: running.state }
+}
+
+function clearReadyFallback(): void {
+  if (readyFallback) {
+    clearTimeout(readyFallback)
+    readyFallback = null
+  }
+}
+
+function markStopped(error?: string): void {
+  clearReadyFallback()
+  running = null
+  broadcast({ instanceId: null, state: 'idle', error })
+}
+
+function killProcessTree(child: ChildProcess): void {
+  if (!child.pid) return
+  if (process.platform === 'win32') {
+    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true
+    })
+    return
+  }
+  child.kill('SIGTERM')
+}
+
+export async function stopInstance(): Promise<void> {
+  if (!running) return
+  const child = running.process
+  killProcessTree(child)
+  markStopped()
+}
+
+function tail(text: string, lines = 16): string {
+  return text
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .slice(-lines)
+    .join('\n')
+}
 
 export async function launchInstance(instance: GameInstance): Promise<LaunchResult> {
   const session = getLiveSession()
@@ -12,30 +70,117 @@ export async function launchInstance(instance: GameInstance): Promise<LaunchResu
   if (!session.loggedIn || !session.profile || !token) {
     return { ok: false, error: 'Sign in with Microsoft before launching.' }
   }
+  if (running) {
+    return { ok: false, error: 'Minecraft is already running.' }
+  }
 
   try {
     const settings = getSettings()
     const javaPath = await findJava(settings.javaPath || undefined)
-    const gameDir = join(instancesRoot(), instance.id)
+    const ready = await ensureBuiltinRuntime(instance)
+    const gameDir = join(instancesRoot(), ready.id)
+    const logFile = join(gameDir, 'logs', 'tidal-launch.log')
+    mkdirSync(join(gameDir, 'logs'), { recursive: true })
+    writeFileSync(logFile, `java=${javaPath}\nversion=${ready.versionId}\n`, 'utf8')
 
-    await launch({
+    broadcast({ instanceId: instance.id, state: 'starting' })
+
+    const child = await launch({
       gamePath: gameDir,
       resourcePath: minecraftRoot(),
       javaPath,
-      version: instance.versionId,
+      version: ready.versionId,
       accessToken: token,
       gameProfile: { id: session.profile.id, name: session.profile.name },
-      userType: 'mojang',
-      launcherName: 'TidalClient',
-      launcherBrand: 'tidal',
+      userType: 'msa' as 'mojang',
+      launcherName: 'Tidal Client',
+      launcherBrand: 'Tidal Client',
       minMemory: settings.minMemoryMb,
       maxMemory: settings.maxMemoryMb,
-      extraExecOption: { detached: true, stdio: 'ignore' }
+      extraJVMArgs: [
+        ...DEFAULT_EXTRA_JVM_ARGS.filter((flag) => !flag.startsWith('-Xmx')),
+        '-XX:+ParallelRefProcEnabled',
+        '-XX:MaxTenuringThreshold=1',
+        '-XX:+DisableExplicitGC',
+        '-XX:+AlwaysPreTouch',
+        '-XX:+PerfDisableSharedMem',
+        '-XX:+UseStringDeduplication',
+        '-Dminecraft.launcher.brand=Tidal Client',
+        '-Dminecraft.launcher.name=Tidal Client',
+        '-Djava.net.preferIPv4Stack=true',
+        '-Dsun.rmi.dgc.server.gcInterval=2147483646',
+        '-XX:G1MixedGCCountTarget=4'
+      ],
+      extraExecOption: {
+        detached: false,
+        windowsHide: false,
+        stdio: ['ignore', 'pipe', 'pipe']
+      }
     })
 
-    upsertInstance({ ...instance, lastPlayed: Date.now() })
+    running = { instanceId: instance.id, process: child, state: 'starting' }
+
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.setBackgroundThrottling(true)
+    }
+
+    let output = ''
+    let pendingLog = ''
+    const flushLog = (): void => {
+      if (!pendingLog) return
+      try {
+        appendFileSync(logFile, pendingLog)
+      } catch {
+        /* ignore log write */
+      }
+      pendingLog = ''
+    }
+    const collect = (chunk: Buffer): void => {
+      const text = chunk.toString()
+      output += text
+      if (output.length > 120_000) output = output.slice(-60_000)
+      pendingLog += text
+      if (pendingLog.length >= 16_384) flushLog()
+    }
+    child.stdout?.on('data', collect)
+    child.stderr?.on('data', collect)
+
+    const watcher = createMinecraftProcessWatcher(child)
+    watcher.on('minecraft-window-ready', () => {
+      if (!running || running.process !== child) return
+      running.state = 'running'
+      clearReadyFallback()
+      broadcast({ instanceId: instance.id, state: 'running' })
+    })
+    watcher.on('minecraft-exit', (event) => {
+      if (running?.process !== child) return
+      flushLog()
+      const crashed = event.code !== 0 && event.code != null
+      const snippet = tail(output)
+      markStopped(
+        crashed
+          ? snippet || `Minecraft exited with code ${event.code}`
+          : undefined
+      )
+    })
+    watcher.on('error', (error: unknown) => {
+      if (running?.process !== child) return
+      flushLog()
+      markStopped(error instanceof Error ? error.message : 'Minecraft failed to start')
+    })
+
+    readyFallback = setTimeout(() => {
+      if (!running || running.process !== child || running.state !== 'starting') return
+      running.state = 'running'
+      broadcast({ instanceId: instance.id, state: 'running' })
+    }, 25_000)
+
+    upsertInstance({ ...ready, lastPlayed: Date.now() })
     return { ok: true }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('Launch failed', error)
+    markStopped(message)
+    return { ok: false, error: message }
   }
 }

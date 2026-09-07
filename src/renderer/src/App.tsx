@@ -11,6 +11,7 @@ export default function App() {
   const [view, setView] = useState<NavView>('discover')
   const [session, setSession] = useState<SessionState>({ loggedIn: false, profile: null })
   const [loggingIn, setLoggingIn] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [creating, setCreating] = useState(false)
   const [instanceTick, setInstanceTick] = useState(0)
@@ -27,10 +28,11 @@ export default function App() {
 
   async function login(): Promise<void> {
     setLoggingIn(true)
+    setLoginError(null)
     try {
       setSession(await window.tidal.login())
     } catch (error) {
-      console.error(error)
+      setLoginError(error instanceof Error ? error.message : String(error))
     } finally {
       setLoggingIn(false)
     }
@@ -38,7 +40,6 @@ export default function App() {
 
   return (
     <div className="flex h-full bg-ink">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(3,73,252,0.18),transparent_32%),radial-gradient(circle_at_80%_20%,rgba(3,73,252,0.08),transparent_24%)]" />
       <Sidebar
         view={view}
         onChange={setView}
@@ -51,10 +52,11 @@ export default function App() {
         <TopBar
           session={session}
           loggingIn={loggingIn}
+          loginError={loginError}
           onLogin={() => void login()}
           onLogout={() => void window.tidal.logout().then(setSession)}
         />
-        <section className="min-h-0 flex-1 overflow-hidden p-6">
+        <section className="min-h-0 flex-1 overflow-hidden px-7 py-6">
           {view === 'discover' ? <DiscoverView settings={settings} onSettings={patchSettings} /> : null}
           {view === 'instances' ? (
             <InstancesView onCreateInstance={() => setCreating(true)} refreshKey={instanceTick} />

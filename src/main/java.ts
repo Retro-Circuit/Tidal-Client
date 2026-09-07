@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
+let cachedJava: { path: string; major: number } | null = null
 
 async function javaMajor(javaPath: string): Promise<number | null> {
   try {
@@ -42,6 +43,7 @@ function walkJavaBins(root: string, depth = 0, found: string[] = []): string[] {
 
 export async function findJava(preferred?: string): Promise<string> {
   if (preferred && existsSync(preferred)) return preferred
+  if (cachedJava && existsSync(cachedJava.path)) return cachedJava.path
 
   const candidates = new Set<string>()
   if (process.env.JAVA_HOME) {
@@ -74,11 +76,12 @@ export async function findJava(preferred?: string): Promise<string> {
     }
   }
 
-  let best: { path: string; major: number } | null = null
+  let best: { path: string; major: number; score: number } | null = null
   for (const candidate of candidates) {
     const major = await javaMajor(candidate)
-    if (!major) continue
-    if (!best || major > best.major) best = { path: candidate, major }
+    if (!major || major < 17) continue
+    const score = major * 10
+    if (!best || score > best.score) best = { path: candidate, major, score }
   }
 
   if (!best) {
@@ -86,5 +89,6 @@ export async function findJava(preferred?: string): Promise<string> {
       'No Java runtime found. Install Temurin 21+ or set a Java path in Settings.'
     )
   }
+  cachedJava = { path: best.path, major: best.major }
   return best.path
 }

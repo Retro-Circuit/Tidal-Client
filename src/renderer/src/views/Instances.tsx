@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Play } from 'lucide-react'
+import { Play, Trash2 } from 'lucide-react'
 import type { GameInstance } from '../../../shared/types'
+import { InstanceDetailsModal } from '../components/InstanceDetailsModal'
 
 export function InstancesView({
   onCreateInstance,
@@ -10,8 +11,8 @@ export function InstancesView({
   refreshKey: number
 }) {
   const [instances, setInstances] = useState<GameInstance[]>([])
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [selected, setSelected] = useState<GameInstance | null>(null)
+  const [query, setQuery] = useState('')
 
   async function refresh(): Promise<void> {
     setInstances(await window.tidal.listInstances())
@@ -21,71 +22,104 @@ export function InstancesView({
     void refresh()
   }, [refreshKey])
 
-  async function launch(id: string): Promise<void> {
-    setBusyId(id)
-    setMessage(null)
-    const result = await window.tidal.launchInstance(id)
-    setBusyId(null)
-    if (!result.ok) setMessage(result.error ?? 'Launch failed')
-    else {
-      setMessage('Minecraft is starting…')
-      await refresh()
-    }
+  async function remove(instance: GameInstance): Promise<void> {
+    const ok = window.confirm(`Delete “${instance.name}”? This cannot be undone.`)
+    if (!ok) return
+    await window.tidal.deleteInstance(instance.id)
+    if (selected?.id === instance.id) setSelected(null)
+    await refresh()
   }
 
+  const visible = instances.filter((instance) =>
+    instance.name.toLowerCase().includes(query.trim().toLowerCase())
+  )
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5">
-      <div className="flex items-end justify-between">
+    <div className="animate-rise flex h-full min-h-0 flex-col gap-6">
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-mute">Library</p>
-          <h2 className="mt-1 text-3xl font-semibold">My Instances</h2>
+          <h2 className="text-3xl font-semibold tracking-tight">My Instances</h2>
+          <p className="mt-1 text-sm text-mute">Open an instance for mods, settings, and play.</p>
         </div>
         <button
           onClick={onCreateInstance}
-          className="rounded-xl bg-tidal px-3 py-2 text-sm font-semibold shadow-[0_0_16px_rgba(3,73,252,0.35)] transition hover:brightness-110"
+          className="rounded-lg bg-tidal px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
         >
-          + Create instance
+          Create instance
         </button>
       </div>
 
-      {message ? <p className="text-sm text-mist">{message}</p> : null}
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search instances"
+        className="w-full rounded-full border border-line bg-panel px-5 py-3 text-sm outline-none transition placeholder:text-mute focus:border-tidal"
+      />
 
-      {instances.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center rounded-3xl border border-dashed border-line text-sm text-mute">
-          Use the + button to create an instance, or install a pack from Discover.
+      {visible.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-line text-sm text-mute">
+          Create an instance, or install a pack from Discover.
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
-          {instances.map((instance) => (
-            <article key={instance.id} className="rounded-2xl border border-line bg-panel p-4">
-              <div className="flex gap-3">
-                <div className="h-14 w-14 aspect-square overflow-hidden rounded-md bg-raised">
-                  {instance.iconUrl ? (
-                    <img src={instance.iconUrl} alt="" className="h-full w-full aspect-square object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-tidal">MC</div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-semibold">{instance.name}</h3>
-                  <p className="text-xs text-mute">
-                    {instance.minecraftVersion} · {instance.loader}
-                    {instance.loaderVersion ? ` ${instance.loaderVersion}` : ''}
-                  </p>
-                </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 pb-8">
+          {visible.map((instance, index) => (
+            <article
+              key={instance.id}
+              onClick={() => setSelected(instance)}
+              className="animate-row flex cursor-pointer items-center gap-4 rounded-2xl border border-line/60 bg-panel/90 px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-tidal/40 hover:bg-raised"
+              style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
+            >
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-ink">
+                {instance.iconUrl ? (
+                  <img src={instance.iconUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm font-bold text-tidal">MC</div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-base font-semibold">{instance.name}</h3>
+                <p className="mt-1 text-sm text-mute">
+                  {instance.minecraftVersion} · {instance.loader}
+                  {instance.loaderVersion ? ` ${instance.loaderVersion}` : ''}
+                </p>
               </div>
               <button
-                onClick={() => launch(instance.id)}
-                disabled={busyId === instance.id}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-tidal py-2.5 text-sm font-semibold shadow-[0_0_18px_rgba(3,73,252,0.35)] transition hover:brightness-110 disabled:opacity-50"
+                type="button"
+                title="Play"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  void window.tidal.launchInstance(instance.id).then((result) => {
+                    if (!result.ok) setSelected(instance)
+                  })
+                }}
+                className="flex items-center gap-2 rounded-lg bg-tidal px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
               >
                 <Play size={14} fill="currentColor" />
-                {busyId === instance.id ? 'Launching…' : 'Play'}
+                Play
+              </button>
+              <button
+                type="button"
+                title="Delete instance"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  void remove(instance)
+                }}
+                className="rounded-lg p-2 text-mute transition hover:bg-ink hover:text-red-300"
+              >
+                <Trash2 size={18} strokeWidth={1.6} className="fill-none" />
               </button>
             </article>
           ))}
         </div>
       )}
+
+      {selected ? (
+        <InstanceDetailsModal
+          instance={selected}
+          onClose={() => setSelected(null)}
+          onChanged={() => void refresh()}
+        />
+      ) : null}
     </div>
   )
 }

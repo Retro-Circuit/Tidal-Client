@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { CreateInstanceRequest, ModLoaderId, VersionManifest } from '../../../shared/types'
 
 const LOADERS: { id: ModLoaderId; label: string }[] = [
@@ -26,13 +26,21 @@ export function CreateInstanceModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const nameId = useId()
 
   useEffect(() => {
+    const focus = (): void => nameRef.current?.focus()
+    const id = window.setTimeout(focus, 50)
     void window.tidal.versionManifest().then((data) => {
       setManifest(data)
       setMinecraftVersion(data.latest.release)
     })
-    return window.tidal.onInstallProgress((progress) => setStatus(progress.message))
+    const stop = window.tidal.onInstallProgress((progress) => setStatus(progress.message))
+    return () => {
+      window.clearTimeout(id)
+      stop()
+    }
   }, [])
 
   useEffect(() => {
@@ -85,18 +93,29 @@ export function CreateInstanceModal({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-6">
-      <div className="w-full max-w-lg rounded-3xl border border-line bg-ink p-6">
+    <dialog
+      open
+      className="animate-fade-in no-drag fixed inset-0 z-[80] m-0 flex h-full w-full max-w-none items-center justify-center bg-black/55 p-6 text-mist"
+    >
+      <div className="animate-rise no-drag w-full max-w-lg rounded-2xl border border-line bg-ink p-6">
         <p className="text-[11px] uppercase tracking-[0.22em] text-mute">New instance</p>
         <h2 className="mt-1 text-2xl font-semibold">Create instance</h2>
 
-        <label className="mt-5 block text-xs text-mute">
+        <label htmlFor={nameId} className="mt-5 block text-xs text-mute">
           Instance name
           <input
+            id={nameId}
+            ref={nameRef}
+            autoFocus
+            type="text"
+            name="instanceName"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My survival world"
-            className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none focus:border-tidal"
+            className="mt-1 w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-sm text-white outline-none placeholder:text-mute focus:border-tidal"
           />
         </label>
 
@@ -188,6 +207,6 @@ export function CreateInstanceModal({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   )
 }
