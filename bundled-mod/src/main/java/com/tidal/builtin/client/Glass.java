@@ -3,20 +3,20 @@ package com.tidal.builtin.client;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class Glass {
-    static final int SCRIM = 0x72000000;
-    static final int PANEL = 0xD2101218;
-    static final int PANEL_EDGE = 0x28FFFFFF;
-    static final int ROW = 0x5A1A1E24;
-    static final int ROW_HOT = 0x6A222830;
+    static final int SCRIM = 0x99080A10;
+    static final int PANEL = 0xE812141C;
+    static final int PANEL_EDGE = 0x3A0349FC;
+    static final int ROW = 0x66181C24;
+    static final int ROW_HOT = 0x8A1E2740;
     static final int ACCENT = 0xFF0349FC;
     static final int ON = 0xFF3DDC84;
     static final int OFF = 0xFFE05C5C;
-    static final int TEXT = 0xFFF4F6F8;
-    static final int MUTE = 0xFF8B93A1;
-    static final int RING = 0xC4101218;
-    static final int RING_HOT = 0xD00349FC;
-    static final int RING_SHEEN = 0x42FFFFFF;
-    static final int RING_SHEEN_HOT = 0x99FFFFFF;
+    static final int TEXT = 0xFFF7F8FA;
+    static final int MUTE = 0xFF9AA3B2;
+    static final int RING = 0xD012141C;
+    static final int RING_HOT = 0xE00349FC;
+    static final int RING_SHEEN = 0x55FFFFFF;
+    static final int RING_SHEEN_HOT = 0xCCFFFFFF;
 
     private Glass() {}
 
@@ -27,9 +27,10 @@ public final class Glass {
     }
 
     static void panel(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int radius) {
-        roundedFill(graphics, x - 1, y - 1, x + w + 1, y + h + 1, radius + 1, PANEL_EDGE);
+        roundedFill(graphics, x - 2, y - 2, x + w + 2, y + h + 2, radius + 2, PANEL_EDGE);
         roundedFill(graphics, x, y, x + w, y + h, radius, PANEL);
-        roundedFill(graphics, x + 8, y + 1, x + w - 8, y + 2, 0, 0x14FFFFFF);
+        roundedFill(graphics, x, y, x + 3, y + h, 0, ACCENT);
+        roundedFill(graphics, x + 12, y + 1, x + w - 12, y + 3, 0, 0x18FFFFFF);
     }
 
     public static void logo(GuiGraphicsExtractor graphics, int x, int y, int size) {
@@ -69,8 +70,8 @@ public final class Glass {
     }
 
     static void toggle(GuiGraphicsExtractor graphics, int x, int y, boolean on) {
-        int w = 30;
-        int h = 16;
+        int w = 34;
+        int h = 18;
         pill(graphics, x, y, w, h, on ? ON : OFF);
         int knob = on ? x + w - h + 1 : x + 1;
         fillCircle(graphics, knob + h / 2, y + h / 2, h / 2 - 3, 0xFFFFFFFF);

@@ -107,11 +107,11 @@ public class RadialScreen extends Screen {
     }
 
     private int innerRadius() {
-        return Math.max(28, Math.min(this.width, this.height) / 14);
+        return Math.max(34, Math.min(this.width, this.height) / 12);
     }
 
     private int outerRadius() {
-        return this.innerRadius() + Math.max(20, Math.min(this.width, this.height) / 22);
+        return this.innerRadius() + Math.max(26, Math.min(this.width, this.height) / 18);
     }
 
     private void updateHovered(int mouseX, int mouseY) {
@@ -168,13 +168,14 @@ public class RadialScreen extends Screen {
         this.portrait.drawHead(graphics, this.minecraft, cx, cy, inner * 2 - 4, mouseX, mouseY);
         graphics.disableScissor();
 
-        Glass.logo(graphics, 12, 12, 20);
-        graphics.text(this.font, "Tidal", 36, 17, Glass.TEXT, false);
+        Glass.logo(graphics, 14, 14, 22);
+        graphics.text(this.font, "TIDAL", 42, 16, Glass.TEXT, false);
+        graphics.text(this.font, "Hold Alt  ·  release on a slice", 42, 27, Glass.MUTE, false);
 
         if (this.hovered >= 0) {
-            int labelW = 72;
-            Glass.pill(graphics, cx - labelW / 2, cy + outer + 10, labelW, 16, 0xCC101218);
-            graphics.centeredText(this.font, LABELS[this.hovered], cx, cy + outer + 14, Glass.TEXT);
+            int labelW = 88;
+            Glass.pill(graphics, cx - labelW / 2, cy + outer + 14, labelW, 18, 0xE0101218);
+            graphics.centeredText(this.font, LABELS[this.hovered], cx, cy + outer + 18, Glass.TEXT);
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }

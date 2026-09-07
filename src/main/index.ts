@@ -3,11 +3,12 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loginWithMicrosoft, logout, restoreSession } from './auth'
 import { fetchProjectDetails, searchModpacks } from './discover'
-import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, importInstanceMods, installContentToInstance, installModpack, listInstanceMods } from './install'
+import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, importForeignInstances, importInstanceMods, installContentToInstance, installModpack, listInstanceMods } from './install'
+import { scanForeignInstances } from './importScan'
 import { launchInstance, stopInstance, getRunStatus } from './launch'
 import { claimDaily, getInstances, getSettings, getWallet, grantShadowPoints, setSettings } from './store'
 import { fetchLoaderVersions, fetchVersionManifest } from './versions'
-import type { CreateInstanceRequest, DiscoverSearch, GameInstance, ModpackCard } from '../shared/types'
+import type { CreateInstanceRequest, DiscoverSearch, ForeignInstance, GameInstance, ModpackCard } from '../shared/types'
 
 function loadDotEnv(): void {
   const file = join(process.cwd(), '.env')
@@ -116,6 +117,8 @@ app.whenReady().then(async () => {
   )
 
   ipcMain.handle('instance:list', () => getInstances())
+  ipcMain.handle('instance:scan-foreign', () => scanForeignInstances())
+  ipcMain.handle('instance:import-foreign', (_e, items: ForeignInstance[]) => importForeignInstances(items))
   ipcMain.handle('instance:install', (_e, pack: ModpackCard) => installModpack(pack))
   ipcMain.handle('instance:install-content', (_e, pack: ModpackCard, instanceId: string) =>
     installContentToInstance(pack, instanceId)

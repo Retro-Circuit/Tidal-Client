@@ -3,6 +3,7 @@ import type {
   AppSettings,
   CreateInstanceRequest,
   DiscoverSearch,
+  ForeignInstance,
   GameInstance,
   InstallProgress,
   InstanceModFile,
@@ -37,6 +38,9 @@ const api = {
   loaderVersions: (loader: ModLoaderId, minecraftVersion: string) =>
     ipcRenderer.invoke('minecraft:loaders', loader, minecraftVersion) as Promise<string[]>,
   listInstances: () => ipcRenderer.invoke('instance:list') as Promise<GameInstance[]>,
+  scanForeignInstances: () => ipcRenderer.invoke('instance:scan-foreign') as Promise<ForeignInstance[]>,
+  importForeignInstances: (items: ForeignInstance[]) =>
+    ipcRenderer.invoke('instance:import-foreign', items) as Promise<GameInstance[]>,
   installModpack: (pack: ModpackCard) => ipcRenderer.invoke('instance:install', pack) as Promise<GameInstance>,
   installContent: (pack: ModpackCard, instanceId: string) =>
     ipcRenderer.invoke('instance:install-content', pack, instanceId) as Promise<GameInstance>,

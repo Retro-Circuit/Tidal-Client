@@ -22,6 +22,7 @@ export interface AppSettings {
   maxMemoryMb: number
   minMemoryMb: number
   javaPath: string
+  importPromptDismissed: boolean
 }
 
 export interface WalletState {
@@ -54,6 +55,16 @@ export interface ProjectDetails {
   card: ModpackCard
   bodyHtml: string
   gallery: GalleryImage[]
+}
+
+export interface ForeignInstance {
+  id: string
+  name: string
+  launcher: string
+  path: string
+  minecraftVersion: string
+  loader: string
+  loaderVersion: string
 }
 
 export interface GameInstance {

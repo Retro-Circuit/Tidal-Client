@@ -36,7 +36,8 @@ const defaults: AppSettings = {
   curseforgeEnabled: false,
   maxMemoryMb: 4096,
   minMemoryMb: 2048,
-  javaPath: ''
+  javaPath: '',
+  importPromptDismissed: false
 }
 
 export const store = new Store<Schema>({

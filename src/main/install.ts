@@ -1,6 +1,6 @@
 import { BrowserWindow, app } from 'electron'
 import { createWriteStream, existsSync, readdirSync, statSync } from 'node:fs'
-import { mkdir, rm, unlink, writeFile, copyFile } from 'node:fs/promises'
+import { mkdir, rm, unlink, writeFile, copyFile, cp } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
@@ -19,9 +19,11 @@ import {
 import type {
   CreateInstanceRequest,
   GameInstance,
+  ForeignInstance,
   InstallProgress,
   InstanceModFile,
   ModpackCard,
+  ModLoaderId,
   ProjectType
 } from '../shared/types'
 import { curseForgeFileDownloadUrl, fetchCurseForgeLatestFile, fetchModrinthVersion } from './discover'
@@ -422,6 +424,65 @@ export async function installContentToInstance(pack: ModpackCard, instanceId: st
     total: 1
   })
   return instance
+}
+
+export async function importForeignInstances(items: ForeignInstance[]): Promise<GameInstance[]> {
+  const created: GameInstance[] = []
+  for (const item of items) {
+    const id = randomUUID()
+    const instanceDir = await prepareInstanceDir(id)
+    sendProgress({ instanceId: id, phase: 'import', message: `Importing ${item.name}`, progress: 0, total: 1 })
+    try {
+      const folders = ['mods', 'resourcepacks', 'shaderpacks', 'config', 'saves', 'screenshots', 'datapacks']
+      for (const folder of folders) {
+        const src = join(item.path, folder)
+        if (existsSync(src)) await cp(src, join(instanceDir, folder), { recursive: true })
+      }
+      for (const file of ['options.txt', 'optionsof.txt', 'servers.dat']) {
+        const src = join(item.path, file)
+        if (existsSync(src)) await copyFile(src, join(instanceDir, file))
+      }
+      let loaderVersion = item.loaderVersion
+      const loader = (['fabric', 'quilt', 'forge', 'neoforge', 'vanilla'].includes(item.loader)
+        ? item.loader
+        : 'vanilla') as ModLoaderId
+      if (loader !== 'vanilla' && !loaderVersion) {
+        const versions = await fetchLoaderVersions(loader, item.minecraftVersion)
+        loaderVersion = versions[0] ?? ''
+      }
+      let versionId = item.minecraftVersion
+      try {
+        versionId = await installLoader(
+          { minecraftVersion: item.minecraftVersion, loader, loaderVersion },
+          (message) => sendProgress({ instanceId: id, phase: 'import', message, progress: 0, total: 1 })
+        )
+        await finishVersion(versionId, (message) =>
+          sendProgress({ instanceId: id, phase: 'import', message, progress: 0, total: 1 })
+        )
+      } catch {
+        versionId = item.minecraftVersion
+      }
+      await injectBuiltinMod(instanceDir, item.minecraftVersion)
+      const instance: GameInstance = {
+        id,
+        name: item.name,
+        source: 'custom',
+        sourceId: item.id,
+        iconUrl: '',
+        minecraftVersion: item.minecraftVersion,
+        loader,
+        loaderVersion,
+        versionId,
+        createdAt: Date.now()
+      }
+      upsertInstance(instance)
+      created.push(instance)
+    } catch (error) {
+      await rm(instanceDir, { recursive: true, force: true })
+      throw error
+    }
+  }
+  return created
 }
 
 export function listInstanceMods(instanceId: string): InstanceModFile[] {

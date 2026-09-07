@@ -2,10 +2,12 @@ import type { AppSettings } from '../../../shared/types'
 
 export function SettingsView({
   settings,
-  onSettings
+  onSettings,
+  onScanLaunchers
 }: {
   settings: AppSettings | null
   onSettings: (patch: Partial<AppSettings>) => Promise<void>
+  onScanLaunchers?: () => Promise<void>
 }) {
   if (!settings) return null
 
@@ -64,6 +66,20 @@ export function SettingsView({
             />
           </label>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-line bg-panel p-5">
+        <h3 className="text-sm font-semibold">Other launchers</h3>
+        <p className="mt-1 text-xs text-mute">
+          Scan this PC for Modrinth, Prism, CurseForge, MultiMC, GDLauncher, ATLauncher, and vanilla installs.
+        </p>
+        <button
+          type="button"
+          onClick={() => void onScanLaunchers?.()}
+          className="mt-3 rounded-lg bg-tidal px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+        >
+          Scan for instances
+        </button>
       </section>
     </div>
   )

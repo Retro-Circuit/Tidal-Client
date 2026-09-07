@@ -54,13 +54,15 @@ mkdirSync(outDir, { recursive: true })
 const ids = await releaseIds()
 if (!ids.includes(compiledVersion)) ids.unshift(compiledVersion)
 
-const catalog = { compiledVersion, releases: ids }
-for (const id of ids) {
-  const dest = join(outDir, `${id}.jar`)
-  const source = id === compiledVersion ? fullJar : stubJar
-  stamp(source, dest, id)
+function sourceFor(id, fullJar, stubJar) {
+  if (id === compiledVersion || id.startsWith('26.') || /^26$/.test(id)) return fullJar
+  return stubJar
 }
 
-copyFileSync(join(outDir, `${compiledVersion}.jar`), fullJar)
+const catalog = { compiledVersion, releases: ids, families: { '26.x': compiledVersion } }
+for (const id of ids) {
+  const dest = join(outDir, `${id}.jar`)
+  stamp(sourceFor(id, fullJar, stubJar), dest, id)
+}
 writeFileSync(join(outDir, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`)
 console.log(`Packed ${ids.length} release jars into ${outDir}`)

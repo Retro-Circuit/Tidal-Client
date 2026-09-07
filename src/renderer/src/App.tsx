@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { AppSettings, NavView, ProjectType, SessionState } from '../../shared/types'
+import type { AppSettings, ForeignInstance, NavView, ProjectType, SessionState } from '../../shared/types'
 import { CreateInstanceModal } from './components/CreateInstanceModal'
+import { ImportInstancesModal } from './components/ImportInstancesModal'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { DiscoverView } from './views/Discover'
@@ -14,6 +15,7 @@ export default function App() {
   const [loginError, setLoginError] = useState<string | null>(null)
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [creating, setCreating] = useState(false)
+  const [foreign, setForeign] = useState<ForeignInstance[] | null>(null)
   const [instanceTick, setInstanceTick] = useState(0)
   const [discoverIntent, setDiscoverIntent] = useState<{
     projectType?: ProjectType | 'all'
@@ -23,7 +25,12 @@ export default function App() {
 
   useEffect(() => {
     void window.tidal.session().then(setSession)
-    void window.tidal.getSettings().then(setSettings)
+    void window.tidal.getSettings().then(async (next) => {
+      setSettings(next)
+      if (next.importPromptDismissed) return
+      const found = await window.tidal.scanForeignInstances()
+      if (found.length) setForeign(found)
+    })
   }, [])
 
   async function patchSettings(patch: Partial<AppSettings>): Promise<void> {
@@ -78,9 +85,32 @@ export default function App() {
               refreshKey={instanceTick}
             />
           ) : null}
-          {view === 'settings' ? <SettingsView settings={settings} onSettings={patchSettings} /> : null}
+          {view === 'settings' ? (
+            <SettingsView
+              settings={settings}
+              onSettings={patchSettings}
+              onScanLaunchers={async () => {
+                const found = await window.tidal.scanForeignInstances()
+                if (found.length) setForeign(found)
+              }}
+            />
+          ) : null}
         </section>
       </main>
+      {foreign ? (
+        <ImportInstancesModal
+          found={foreign}
+          onClose={() => {
+            setForeign(null)
+            void patchSettings({ importPromptDismissed: true })
+          }}
+          onImported={() => {
+            setInstanceTick((n) => n + 1)
+            setView('instances')
+            void patchSettings({ importPromptDismissed: true })
+          }}
+        />
+      ) : null}
       {creating ? (
         <CreateInstanceModal
           onClose={() => setCreating(false)}

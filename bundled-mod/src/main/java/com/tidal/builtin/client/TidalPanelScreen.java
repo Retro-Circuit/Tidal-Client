@@ -34,14 +34,14 @@ public abstract class TidalPanelScreen extends Screen {
     }
 
     protected void layoutPanel() {
-        this.panelW = Math.min(580, Math.max(440, this.width - 140));
-        this.panelH = Math.min(this.preferredHeight(), Math.max(260, this.height - 64));
+        this.panelW = Math.min(620, Math.max(460, this.width - 120));
+        this.panelH = Math.min(this.preferredHeight(), Math.max(280, this.height - 56));
         this.panelX = (this.width - this.panelW) / 2;
         this.panelY = (this.height - this.panelH) / 2;
-        this.bodyX = this.panelX + 16;
-        this.bodyY = this.panelY + 48;
-        this.bodyW = this.panelW - 32;
-        this.bodyH = this.panelH - 84;
+        this.bodyX = this.panelX + 22;
+        this.bodyY = this.panelY + 54;
+        this.bodyW = this.panelW - 44;
+        this.bodyH = this.panelH - 96;
         this.clampScroll();
     }
 
@@ -92,14 +92,15 @@ public abstract class TidalPanelScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         this.layoutPanel();
         Glass.scrim(graphics, this.width, this.height);
-        Glass.panel(graphics, this.panelX, this.panelY, this.panelW, this.panelH, 22);
-        Glass.logo(graphics, this.panelX + 14, this.panelY + 11, 20);
-        graphics.text(this.font, this.heading, this.panelX + 40, this.panelY + 16, Glass.TEXT, false);
-        int closeX0 = this.panelX + this.panelW - 34;
-        int closeY0 = this.panelY + 12;
-        Glass.fillCircle(graphics, closeX0 + 9, closeY0 + 9, 9, 0x22FFFFFF);
+        Glass.panel(graphics, this.panelX, this.panelY, this.panelW, this.panelH, 18);
+        Glass.logo(graphics, this.panelX + 18, this.panelY + 14, 22);
+        graphics.text(this.font, this.heading, this.panelX + 48, this.panelY + 14, Glass.TEXT, false);
+        graphics.text(this.font, "Tidal Client", this.panelX + 48, this.panelY + 26, Glass.MUTE, false);
+        int closeX0 = this.panelX + this.panelW - 38;
+        int closeY0 = this.panelY + 14;
+        Glass.fillCircle(graphics, closeX0 + 9, closeY0 + 9, 9, 0x28FFFFFF);
         graphics.centeredText(this.font, "x", closeX0 + 9, closeY0 + 5, Glass.MUTE);
-        Glass.roundedFill(graphics, this.panelX + 16, this.panelY + 40, this.panelX + this.panelW - 16, this.panelY + 41, 0, 0x18FFFFFF);
+        Glass.roundedFill(graphics, this.panelX + 18, this.panelY + 44, this.panelX + this.panelW - 18, this.panelY + 45, 0, 0x22FFFFFF);
         graphics.enableScissor(this.bodyX, this.bodyY, this.bodyX + this.bodyW, this.bodyY + this.bodyH);
         this.drawBody(graphics, mouseX, mouseY, delta);
         graphics.disableScissor();
@@ -122,8 +123,8 @@ public abstract class TidalPanelScreen extends Screen {
         this.layoutPanel();
         int mx = (int) event.x();
         int my = (int) event.y();
-        int closeX0 = this.panelX + this.panelW - 34;
-        int closeY0 = this.panelY + 12;
+        int closeX0 = this.panelX + this.panelW - 38;
+        int closeY0 = this.panelY + 14;
         int backX0 = this.panelX + this.panelW / 2 - 40;
         int backY0 = this.panelY + this.panelH - 32;
         if (in(mx, my, closeX0, closeY0, closeX0 + 18, closeY0 + 18) || in(mx, my, backX0, backY0, backX0 + 80, backY0 + 20)) {
