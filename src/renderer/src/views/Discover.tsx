@@ -1,29 +1,52 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
-import type { AppSettings, InstallProgress, ModpackCard } from '../../../shared/types'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import type { AppSettings, DiscoverSearch, InstallProgress, ModpackCard, ProjectType } from '../../../shared/types'
 import { ModpackCardView } from '../components/ModpackCard'
 import { ProjectDetailsModal } from '../components/ProjectDetailsModal'
 import { Toggle } from '../components/Toggle'
 
+const PAGE_SIZE = 24
+
+const TYPES: { id: ProjectType | 'all'; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'mod', label: 'Mods' },
+  { id: 'modpack', label: 'Modpacks' },
+  { id: 'resourcepack', label: 'Resource packs' }
+]
+
 export function DiscoverView({
   settings,
-  onSettings
+  onSettings,
+  intent
 }: {
   settings: AppSettings | null
   onSettings: (patch: Partial<AppSettings>) => Promise<void>
+  intent?: { projectType?: ProjectType | 'all'; gameVersion?: string; instanceId?: string }
 }) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
+  const [offset, setOffset] = useState(0)
+  const [projectType, setProjectType] = useState<ProjectType | 'all'>(intent?.projectType ?? 'all')
   const [packs, setPacks] = useState<ModpackCard[]>([])
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<InstallProgress | null>(null)
   const [selected, setSelected] = useState<ModpackCard | null>(null)
 
   useEffect(() => {
+    if (intent?.projectType) setProjectType(intent.projectType)
+    setOffset(0)
+  }, [intent?.projectType, intent?.gameVersion, intent?.instanceId])
+
+  useEffect(() => {
     const t = setTimeout(() => setDebounced(query), 350)
     return () => clearTimeout(t)
   }, [query])
+
+  useEffect(() => {
+    setOffset(0)
+  }, [debounced, projectType])
 
   useEffect(() => {
     return window.tidal.onInstallProgress(setProgress)
@@ -38,11 +61,17 @@ export function DiscoverView({
     if (!settings) return
     let cancelled = false
     setLoading(true)
+    const options: DiscoverSearch = {
+      offset,
+      projectType,
+      gameVersion: intent?.gameVersion
+    }
     window.tidal
-      .searchModpacks(debounced)
+      .searchModpacks(debounced, options)
       .then((result) => {
         if (cancelled) return
         setPacks(result.hits)
+        setHasMore(result.hasMore)
         setError(result.error ?? null)
       })
       .catch((err: Error) => {
@@ -54,13 +83,19 @@ export function DiscoverView({
     return () => {
       cancelled = true
     }
-  }, [debounced, sourcesKey, settings])
+  }, [debounced, sourcesKey, settings, offset, projectType, intent?.gameVersion])
+
+  const page = Math.floor(offset / PAGE_SIZE) + 1
 
   return (
     <div className="animate-rise flex h-full min-h-0 flex-col gap-6">
       <div>
         <h2 className="text-3xl font-semibold tracking-tight">Discover</h2>
-        <p className="mt-1 text-sm text-mute">Click a project to read more and download.</p>
+        <p className="mt-1 text-sm text-mute">
+          {intent?.gameVersion
+            ? `Showing ${intent.gameVersion} content. Click a project to install.`
+            : 'Click a project to read more and download.'}
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -73,6 +108,27 @@ export function DiscoverView({
             className="w-full rounded-full border border-line bg-panel py-3 pr-4 pl-11 text-sm outline-none transition placeholder:text-mute focus:border-tidal"
           />
         </label>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            title="Previous page"
+            disabled={offset <= 0 || loading}
+            onClick={() => setOffset((value) => Math.max(0, value - PAGE_SIZE))}
+            className="rounded-lg border border-line bg-panel p-2 text-mist transition hover:border-tidal/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="min-w-10 text-center text-xs text-mute">{page}</span>
+          <button
+            type="button"
+            title="Next page"
+            disabled={!hasMore || loading}
+            onClick={() => setOffset((value) => value + PAGE_SIZE)}
+            className="rounded-lg border border-line bg-panel p-2 text-mist transition hover:border-tidal/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
         <Toggle
           label="Modrinth"
           checked={Boolean(settings?.modrinthEnabled)}
@@ -83,6 +139,21 @@ export function DiscoverView({
           checked={Boolean(settings?.curseforgeEnabled)}
           onChange={(next) => onSettings({ curseforgeEnabled: next })}
         />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {TYPES.map((type) => (
+          <button
+            key={type.id}
+            type="button"
+            onClick={() => setProjectType(type.id)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              projectType === type.id ? 'bg-tidal text-white' : 'bg-panel text-mute hover:text-mist'
+            }`}
+          >
+            {type.label}
+          </button>
+        ))}
       </div>
 
       {progress?.phase === 'done' ? (

@@ -1,7 +1,6 @@
 {
-  "required": false,
+  "required": true,
   "package": "com.tidal.builtin.mixin",
-  "plugin": "com.tidal.builtin.mixin.TidalMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "MinecraftMixin",

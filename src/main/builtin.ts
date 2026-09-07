@@ -11,18 +11,6 @@ export function isHiddenBuiltin(fileName: string): boolean {
   return fileName.toLowerCase().startsWith('tidal-builtin')
 }
 
-export function canLoadBuiltinJar(minecraftVersion: string): boolean {
-  const version = minecraftVersion.trim()
-  if (/^\d{2}\.\d/.test(version)) return true
-  const match = /^1\.(\d+)(?:\.(\d+))?/.exec(version)
-  if (!match) return true
-  const minor = Number(match[1])
-  const patch = match[2] != null ? Number(match[2]) : 0
-  if (minor > 20) return true
-  if (minor === 20) return patch >= 5
-  return false
-}
-
 function gradleBuiltJar(): string | null {
   const libs = join(process.cwd(), 'bundled-mod', 'build', 'libs')
   if (!existsSync(libs)) return null
@@ -31,12 +19,28 @@ function gradleBuiltJar(): string | null {
       name.startsWith('tidal-builtin') &&
       name.endsWith('.jar') &&
       !name.endsWith('-sources.jar') &&
-      !name.includes('-dev')
+      !name.includes('-dev') &&
+      !name.includes('-stub')
   )
   return jar ? join(libs, jar) : null
 }
 
-export function resolveBuiltinMod(): string | null {
+function versionedJar(minecraftVersion: string): string | null {
+  const name = `${minecraftVersion}.jar`
+  const candidates = [
+    join(process.cwd(), 'resources', 'tidal-builtin', name),
+    join(__dirname, '../../resources/tidal-builtin', name),
+    join(app.getAppPath(), 'resources', 'tidal-builtin', name),
+    join(process.resourcesPath, 'tidal-builtin', name)
+  ]
+  return candidates.find((path) => existsSync(path)) ?? null
+}
+
+export function resolveBuiltinMod(minecraftVersion?: string): string | null {
+  if (minecraftVersion) {
+    const match = versionedJar(minecraftVersion)
+    if (match) return match
+  }
   const candidates = [
     join(process.cwd(), 'resources', 'tidal-builtin.jar'),
     gradleBuiltJar(),
@@ -64,8 +68,8 @@ export async function injectBuiltinMod(
   const modsDir = join(instanceDir, 'mods')
   await mkdir(modsDir, { recursive: true })
   const dest = join(modsDir, BUILTIN_MOD_FILE)
-  const source = resolveBuiltinMod()
-  if (source && (minecraftVersion == null || canLoadBuiltinJar(minecraftVersion))) {
+  const source = resolveBuiltinMod(minecraftVersion)
+  if (source) {
     await copyFile(source, dest)
   } else if (existsSync(dest)) {
     await unlink(dest)

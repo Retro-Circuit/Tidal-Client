@@ -3,11 +3,11 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loginWithMicrosoft, logout, restoreSession } from './auth'
 import { fetchProjectDetails, searchModpacks } from './discover'
-import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, installContentToInstance, installModpack, listInstanceMods } from './install'
+import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, importInstanceMods, installContentToInstance, installModpack, listInstanceMods } from './install'
 import { launchInstance, stopInstance, getRunStatus } from './launch'
 import { claimDaily, getInstances, getSettings, getWallet, grantShadowPoints, setSettings } from './store'
 import { fetchLoaderVersions, fetchVersionManifest } from './versions'
-import type { CreateInstanceRequest, GameInstance, ModpackCard } from '../shared/types'
+import type { CreateInstanceRequest, DiscoverSearch, GameInstance, ModpackCard } from '../shared/types'
 
 function loadDotEnv(): void {
   const file = join(process.cwd(), '.env')
@@ -106,7 +106,9 @@ app.whenReady().then(async () => {
   ipcMain.handle('wallet:claim-daily', () => claimDaily())
   ipcMain.handle('wallet:grant-shadow', () => grantShadowPoints())
 
-  ipcMain.handle('discover:search', (_e, query: string) => searchModpacks(query))
+  ipcMain.handle('discover:search', (_e, query: string, options?: DiscoverSearch) =>
+    searchModpacks(query, options)
+  )
   ipcMain.handle('discover:details', (_e, card: ModpackCard) => fetchProjectDetails(card))
   ipcMain.handle('minecraft:versions', () => fetchVersionManifest())
   ipcMain.handle('minecraft:loaders', (_e, loader, minecraftVersion: string) =>
@@ -121,6 +123,9 @@ app.whenReady().then(async () => {
   ipcMain.handle('instance:create', (_e, request: CreateInstanceRequest) => createCustomInstance(request))
   ipcMain.handle('instance:vanilla', (_e, version?: string) => createVanillaInstance(version))
   ipcMain.handle('instance:mods', (_e, instanceId: string) => listInstanceMods(instanceId))
+  ipcMain.handle('instance:import-mods', (_e, instanceId: string, paths: string[]) =>
+    importInstanceMods(instanceId, paths)
+  )
   ipcMain.handle('instance:delete-mod', (_e, instanceId: string, fileName: string) =>
     deleteInstanceMod(instanceId, fileName)
   )

@@ -1,7 +1,7 @@
 import { BrowserWindow, app } from 'electron'
 import { createWriteStream, existsSync, readdirSync, statSync } from 'node:fs'
-import { mkdir, rm, unlink, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { mkdir, rm, unlink, writeFile, copyFile } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 import { randomUUID } from 'node:crypto'
@@ -437,6 +437,19 @@ export function listInstanceMods(instanceId: string): InstanceModFile[] {
       size: statSync(join(modsDir, fileName)).size
     }))
     .sort((a, b) => a.fileName.localeCompare(b.fileName))
+}
+
+export async function importInstanceMods(instanceId: string, paths: string[]): Promise<InstanceModFile[]> {
+  const modsDir = join(instancesRoot(), instanceId, 'mods')
+  await mkdir(modsDir, { recursive: true })
+  for (const src of paths) {
+    const lower = src.toLowerCase()
+    if (!lower.endsWith('.jar')) continue
+    const fileName = basename(src).replace(/[/\\]/g, '')
+    if (!fileName || isHiddenBuiltin(fileName)) continue
+    await copyFile(src, join(modsDir, fileName))
+  }
+  return listInstanceMods(instanceId)
 }
 
 export async function deleteInstanceMod(instanceId: string, fileName: string): Promise<void> {

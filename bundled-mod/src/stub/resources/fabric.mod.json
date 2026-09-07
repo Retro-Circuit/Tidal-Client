@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "tidal-builtin",
+  "version": "1.0.0",
+  "name": "Tidal Client",
+  "description": "Tidal Client placeholder for this Minecraft release",
+  "authors": ["Tidal Client"],
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.tidal.builtin.TidalBuiltin"]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "minecraft": "*",
+    "java": ">=8"
+  }
+}

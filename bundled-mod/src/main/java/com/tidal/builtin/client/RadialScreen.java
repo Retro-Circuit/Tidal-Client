@@ -1,6 +1,6 @@
 package com.tidal.builtin.client;
 
-import com.tidal.builtin.TidalBuiltinRuntime;
+import com.tidal.builtin.TidalBuiltin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -38,7 +38,7 @@ public class RadialScreen extends Screen {
         if (minecraft == null || this.resolved) {
             return;
         }
-        boolean down = TidalBuiltinRuntime.menuDown(minecraft);
+        boolean down = TidalBuiltin.menuDown(minecraft);
         if (!down) {
             this.armed = true;
             return;

@@ -17,6 +17,6 @@ public class MinecraftMixin {
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void tidal$tick(CallbackInfo ci) {
-        TidalBuiltin.tick(this);
+        TidalBuiltin.tick((Minecraft) (Object) this);
     }
 }

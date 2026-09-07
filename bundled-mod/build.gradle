@@ -13,20 +13,39 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    stub {
+        java.srcDir "src/stub/java"
+        resources.srcDir "src/stub/resources"
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    stubImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 }
 
 processResources {
     inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
     filesMatching("fabric.mod.json") {
-        expand "version": project.version
+        expand version: project.version, minecraft_version: project.minecraft_version
     }
 }
 
+tasks.named("processStubResources") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.named("compileStubJava") {
+    options.release = 8
+}
+
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    if (it.name != "compileStubJava") {
+        it.options.release = 21
+    }
 }
 
 java {
@@ -35,13 +54,19 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
+tasks.register("stubJar", Jar) {
+    dependsOn compileStubJava, processStubResources
+    archiveClassifier = "stub"
+    from sourceSets.stub.output
+}
+
 tasks.register("copyToLauncher", Copy) {
-    dependsOn jar
+    dependsOn jar, stubJar
     from jar.archiveFile
     into "${rootDir}/../resources"
     rename { "tidal-builtin.jar" }
 }
 
 tasks.named("build") {
-    finalizedBy copyToLauncher
+    finalizedBy copyToLauncher, stubJar
 }

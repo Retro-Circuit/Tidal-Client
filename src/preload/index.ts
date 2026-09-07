@@ -1,7 +1,8 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
   AppSettings,
   CreateInstanceRequest,
+  DiscoverSearch,
   GameInstance,
   InstallProgress,
   InstanceModFile,
@@ -28,7 +29,8 @@ const api = {
   getWallet: () => ipcRenderer.invoke('wallet:get') as Promise<WalletState>,
   claimDaily: () => ipcRenderer.invoke('wallet:claim-daily') as Promise<WalletState>,
   grantShadowPoints: () => ipcRenderer.invoke('wallet:grant-shadow') as Promise<WalletState>,
-  searchModpacks: (query: string) => ipcRenderer.invoke('discover:search', query) as Promise<SearchResult>,
+  searchModpacks: (query: string, options?: DiscoverSearch) =>
+    ipcRenderer.invoke('discover:search', query, options) as Promise<SearchResult>,
   projectDetails: (card: ModpackCard) =>
     ipcRenderer.invoke('discover:details', card) as Promise<ProjectDetails>,
   versionManifest: () => ipcRenderer.invoke('minecraft:versions') as Promise<VersionManifest>,
@@ -54,6 +56,9 @@ const api = {
   },
   getInstanceMods: (instanceId: string) =>
     ipcRenderer.invoke('instance:mods', instanceId) as Promise<InstanceModFile[]>,
+  importInstanceMods: (instanceId: string, paths: string[]) =>
+    ipcRenderer.invoke('instance:import-mods', instanceId, paths) as Promise<InstanceModFile[]>,
+  pathsFromDrop: (files: File[]) => files.map((file) => webUtils.getPathForFile(file)),
   deleteInstanceMod: (instanceId: string, fileName: string) =>
     ipcRenderer.invoke('instance:delete-mod', instanceId, fileName) as Promise<void>,
   deleteInstance: (instanceId: string) => ipcRenderer.invoke('instance:delete', instanceId) as Promise<void>,

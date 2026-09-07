@@ -93,7 +93,17 @@ export interface InstanceRunStatus {
 
 export interface SearchResult {
   hits: ModpackCard[]
+  offset: number
+  pageSize: number
+  hasMore: boolean
   error?: string
+}
+
+export interface DiscoverSearch {
+  query?: string
+  offset?: number
+  projectType?: ProjectType | 'all'
+  gameVersion?: string
 }
 
 export interface MinecraftVersionInfo {

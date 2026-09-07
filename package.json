@@ -14,6 +14,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "build:mod": "node scripts/build-mod.mjs",
+    "pack:mod": "node scripts/pack-builtin-releases.mjs",
     "dist": "node scripts/package-win.mjs",
     "dist:dir": "node scripts/package-win.mjs --dir",
     "dist:full": "node scripts/package-win.mjs --mod",
@@ -21,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Retro-Circuit/tidal-client.git"
+    "url": "git+https://github.com/Retro-Circuit/Tidal-Client.git"
   },
   "dependencies": {
     "@xmcl/core": "2.15.1",

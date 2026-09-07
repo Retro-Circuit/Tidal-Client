@@ -1,4 +1,4 @@
-import type { GalleryImage, ModpackCard, ProjectDetails, ProjectType, SearchResult } from '../shared/types'
+import type { DiscoverSearch, GalleryImage, ModpackCard, ProjectDetails, ProjectType, SearchResult } from '../shared/types'
 import { getSettings } from './store'
 
 const MODRINTH = 'https://api.modrinth.com/v2'
@@ -42,12 +42,23 @@ function curseForgeType(classId?: number): ProjectType {
   return 'modpack'
 }
 
-async function searchModrinth(query: string): Promise<ModpackCard[]> {
+const PAGE_SIZE = 24
+
+function typeFacets(projectType?: ProjectType | 'all'): string[] {
+  if (projectType && projectType !== 'all') return [`project_type:${projectType}`]
+  return ['project_type:modpack', 'project_type:mod', 'project_type:resourcepack']
+}
+
+async function searchModrinth(query: string, options: DiscoverSearch): Promise<ModpackCard[]> {
+  const offset = options.offset ?? 0
+  const facets: string[][] = [typeFacets(options.projectType)]
+  if (options.gameVersion) facets.push([`versions:${options.gameVersion}`])
   const params = new URLSearchParams({
     query,
-    limit: '24',
+    limit: String(PAGE_SIZE),
+    offset: String(offset),
     index: query.trim() ? 'relevance' : 'follows',
-    facets: JSON.stringify([['project_type:modpack', 'project_type:mod', 'project_type:resourcepack']])
+    facets: JSON.stringify(facets)
   })
   const res = await fetch(`${MODRINTH}/search?${params.toString()}`, {
     headers: { 'User-Agent': USER_AGENT }
@@ -71,12 +82,14 @@ async function searchModrinth(query: string): Promise<ModpackCard[]> {
 async function searchCurseForgeClass(
   query: string,
   apiKey: string,
-  classId: number
+  classId: number,
+  offset: number
 ): Promise<ModpackCard[]> {
   const params = new URLSearchParams({
     gameId: '432',
     classId: String(classId),
-    pageSize: '12',
+    pageSize: String(PAGE_SIZE),
+    index: String(offset),
     sortField: '2',
     sortOrder: 'desc'
   })
@@ -106,29 +119,37 @@ async function searchCurseForgeClass(
   }))
 }
 
-async function searchCurseForge(query: string, apiKey: string): Promise<ModpackCard[]> {
+async function searchCurseForge(query: string, apiKey: string, options: DiscoverSearch): Promise<ModpackCard[]> {
   if (!apiKey.trim()) {
     throw new Error('Add a CurseForge API key in Settings to enable CurseForge search.')
   }
-  const groups = await Promise.all([
-    searchCurseForgeClass(query, apiKey, 4471),
-    searchCurseForgeClass(query, apiKey, 6),
-    searchCurseForgeClass(query, apiKey, 12)
-  ])
+  const offset = options.offset ?? 0
+  const classIds =
+    options.projectType === 'mod'
+      ? [6]
+      : options.projectType === 'resourcepack'
+        ? [12]
+        : options.projectType === 'shader'
+          ? [6552]
+          : options.projectType === 'modpack'
+            ? [4471]
+            : [4471, 6, 12]
+  const groups = await Promise.all(classIds.map((classId) => searchCurseForgeClass(query, apiKey, classId, offset)))
   return groups.flat()
 }
 
-export async function searchModpacks(query: string): Promise<SearchResult> {
+export async function searchModpacks(query: string, options: DiscoverSearch = {}): Promise<SearchResult> {
   const settings = getSettings()
   const tasks: Promise<ModpackCard[]>[] = []
   const errors: string[] = []
+  const offset = options.offset ?? 0
 
   if (!settings.modrinthEnabled && !settings.curseforgeEnabled) {
-    return { hits: [], error: 'Turn on Modrinth or CurseForge support to browse content.' }
+    return { hits: [], offset, pageSize: PAGE_SIZE, hasMore: false, error: 'Turn on Modrinth or CurseForge support to browse content.' }
   }
 
-  if (settings.modrinthEnabled) tasks.push(searchModrinth(query))
-  if (settings.curseforgeEnabled) tasks.push(searchCurseForge(query, settings.curseforgeApiKey))
+  if (settings.modrinthEnabled) tasks.push(searchModrinth(query, options))
+  if (settings.curseforgeEnabled) tasks.push(searchCurseForge(query, settings.curseforgeApiKey, options))
 
   const settled = await Promise.allSettled(tasks)
   const hits: ModpackCard[] = []
@@ -140,6 +161,9 @@ export async function searchModpacks(query: string): Promise<SearchResult> {
   hits.sort((a, b) => b.downloads - a.downloads)
   return {
     hits,
+    offset,
+    pageSize: PAGE_SIZE,
+    hasMore: hits.length >= PAGE_SIZE,
     error: hits.length === 0 && errors.length ? errors.join(' ') : errors[0]
   }
 }

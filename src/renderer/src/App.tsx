@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppSettings, NavView, SessionState } from '../../shared/types'
+import type { AppSettings, NavView, ProjectType, SessionState } from '../../shared/types'
 import { CreateInstanceModal } from './components/CreateInstanceModal'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
@@ -15,6 +15,11 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [creating, setCreating] = useState(false)
   const [instanceTick, setInstanceTick] = useState(0)
+  const [discoverIntent, setDiscoverIntent] = useState<{
+    projectType?: ProjectType | 'all'
+    gameVersion?: string
+    instanceId?: string
+  }>()
 
   useEffect(() => {
     void window.tidal.session().then(setSession)
@@ -42,7 +47,10 @@ export default function App() {
     <div className="flex h-full bg-ink">
       <Sidebar
         view={view}
-        onChange={setView}
+        onChange={(next) => {
+          if (next === 'discover' && view !== 'discover') setDiscoverIntent(undefined)
+          setView(next)
+        }}
         onCreateInstance={() => {
           setView('instances')
           setCreating(true)
@@ -57,9 +65,18 @@ export default function App() {
           onLogout={() => void window.tidal.logout().then(setSession)}
         />
         <section className="min-h-0 flex-1 overflow-hidden px-7 py-6">
-          {view === 'discover' ? <DiscoverView settings={settings} onSettings={patchSettings} /> : null}
+          {view === 'discover' ? (
+            <DiscoverView settings={settings} onSettings={patchSettings} intent={discoverIntent} />
+          ) : null}
           {view === 'instances' ? (
-            <InstancesView onCreateInstance={() => setCreating(true)} refreshKey={instanceTick} />
+            <InstancesView
+              onCreateInstance={() => setCreating(true)}
+              onDiscover={(intent) => {
+                setDiscoverIntent(intent ?? { projectType: 'mod' })
+                setView('discover')
+              }}
+              refreshKey={instanceTick}
+            />
           ) : null}
           {view === 'settings' ? <SettingsView settings={settings} onSettings={patchSettings} /> : null}
         </section>

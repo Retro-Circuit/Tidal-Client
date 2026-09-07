@@ -19,4 +19,13 @@ const result = spawnSync(cmd, ['build'], {
   shell: process.platform === 'win32'
 })
 
-process.exit(result.status ?? 1)
+if ((result.status ?? 1) !== 0) {
+  process.exit(result.status ?? 1)
+}
+
+const pack = spawnSync(process.execPath, [join(root, 'scripts', 'pack-builtin-releases.mjs')], {
+  cwd: root,
+  stdio: 'inherit'
+})
+
+process.exit(pack.status ?? 1)

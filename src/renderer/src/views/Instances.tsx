@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Play, Trash2 } from 'lucide-react'
-import type { GameInstance } from '../../../shared/types'
+import { Compass, Play, Trash2 } from 'lucide-react'
+import type { GameInstance, ProjectType } from '../../../shared/types'
 import { InstanceDetailsModal } from '../components/InstanceDetailsModal'
 
 export function InstancesView({
   onCreateInstance,
+  onDiscover,
   refreshKey
 }: {
   onCreateInstance: () => void
+  onDiscover: (intent?: { projectType?: ProjectType | 'all'; gameVersion?: string; instanceId?: string }) => void
   refreshKey: number
 }) {
   const [instances, setInstances] = useState<GameInstance[]>([])
   const [selected, setSelected] = useState<GameInstance | null>(null)
   const [query, setQuery] = useState('')
+  const [dropId, setDropId] = useState<string | null>(null)
+  const [dropMessage, setDropMessage] = useState<string | null>(null)
 
   async function refresh(): Promise<void> {
     setInstances(await window.tidal.listInstances())
@@ -30,6 +34,17 @@ export function InstancesView({
     await refresh()
   }
 
+  async function dropJars(instance: GameInstance, files: File[]): Promise<void> {
+    const jars = files.filter((file) => file.name.toLowerCase().endsWith('.jar'))
+    if (!jars.length) return
+    const paths = window.tidal.pathsFromDrop(jars).filter(Boolean)
+    if (!paths.length) return
+    await window.tidal.importInstanceMods(instance.id, paths)
+    setDropMessage(`Added ${paths.length} mod${paths.length === 1 ? '' : 's'} to ${instance.name}`)
+    if (selected?.id === instance.id) setSelected({ ...instance })
+    await refresh()
+  }
+
   const visible = instances.filter((instance) =>
     instance.name.toLowerCase().includes(query.trim().toLowerCase())
   )
@@ -39,14 +54,24 @@ export function InstancesView({
       <div className="flex items-end justify-between gap-4">
         <div>
           <h2 className="text-3xl font-semibold tracking-tight">My Instances</h2>
-          <p className="mt-1 text-sm text-mute">Open an instance for mods, settings, and play.</p>
+          <p className="mt-1 text-sm text-mute">Open an instance for mods, settings, and play. Drop .jar files onto a row to import.</p>
         </div>
-        <button
-          onClick={onCreateInstance}
-          className="rounded-lg bg-tidal px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
-        >
-          Create instance
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onDiscover({ projectType: 'mod' })}
+            className="flex items-center gap-2 rounded-lg border border-line bg-panel px-4 py-2 text-sm font-semibold text-mist transition hover:border-tidal/50 hover:text-white"
+          >
+            <Compass size={14} />
+            Discover
+          </button>
+          <button
+            onClick={onCreateInstance}
+            className="rounded-lg bg-tidal px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+          >
+            Create instance
+          </button>
+        </div>
       </div>
 
       <input
@@ -55,6 +80,8 @@ export function InstancesView({
         placeholder="Search instances"
         className="w-full rounded-full border border-line bg-panel px-5 py-3 text-sm outline-none transition placeholder:text-mute focus:border-tidal"
       />
+
+      {dropMessage ? <p className="text-sm text-mist">{dropMessage}</p> : null}
 
       {visible.length === 0 ? (
         <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-line text-sm text-mute">
@@ -66,7 +93,22 @@ export function InstancesView({
             <article
               key={instance.id}
               onClick={() => setSelected(instance)}
-              className="animate-row flex cursor-pointer items-center gap-4 rounded-2xl border border-line/60 bg-panel/90 px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-tidal/40 hover:bg-raised"
+              onDragOver={(event) => {
+                event.preventDefault()
+                setDropId(instance.id)
+              }}
+              onDragLeave={() => {
+                if (dropId === instance.id) setDropId(null)
+              }}
+              onDrop={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setDropId(null)
+                void dropJars(instance, [...event.dataTransfer.files])
+              }}
+              className={`animate-row flex cursor-pointer items-center gap-4 rounded-2xl border bg-panel/90 px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-tidal/40 hover:bg-raised ${
+                dropId === instance.id ? 'border-tidal bg-tidal/10' : 'border-line/60'
+              }`}
               style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
             >
               <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-ink">
@@ -83,6 +125,21 @@ export function InstancesView({
                   {instance.loaderVersion ? ` ${instance.loaderVersion}` : ''}
                 </p>
               </div>
+              <button
+                type="button"
+                title="Find mods"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDiscover({
+                    projectType: 'mod',
+                    gameVersion: instance.minecraftVersion,
+                    instanceId: instance.id
+                  })
+                }}
+                className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-mute transition hover:border-tidal/50 hover:text-white"
+              >
+                Discover
+              </button>
               <button
                 type="button"
                 title="Play"
@@ -118,6 +175,13 @@ export function InstancesView({
           instance={selected}
           onClose={() => setSelected(null)}
           onChanged={() => void refresh()}
+          onDiscover={() =>
+            onDiscover({
+              projectType: 'mod',
+              gameVersion: selected.minecraftVersion,
+              instanceId: selected.id
+            })
+          }
         />
       ) : null}
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Play, Trash2 } from 'lucide-react'
+import { Compass, Play, Trash2 } from 'lucide-react'
 import type { GameInstance, InstanceModFile, InstanceRunState } from '../../../shared/types'
 import { FullscreenView } from './FullscreenView'
 
@@ -27,17 +27,21 @@ function friendlyLaunchError(error: string): string {
 export function InstanceDetailsModal({
   instance,
   onClose,
-  onChanged
+  onChanged,
+  onDiscover
 }: {
   instance: GameInstance
   onClose: () => void
   onChanged: () => void
+  onDiscover: () => void
 }) {
   const [mods, setMods] = useState<InstanceModFile[]>([])
   const [runState, setRunState] = useState<InstanceRunState>('idle')
   const [runInstanceId, setRunInstanceId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const [dragging, setDragging] = useState(false)
 
   const thisRun = runInstanceId === instance.id ? runState : 'idle'
 
@@ -61,6 +65,15 @@ export function InstanceDetailsModal({
       if (status.error) setError(status.error)
     })
   }, [])
+
+  async function importDropped(files: File[]): Promise<void> {
+    const jars = files.filter((file) => file.name.toLowerCase().endsWith('.jar'))
+    if (!jars.length) return
+    const paths = window.tidal.pathsFromDrop(jars).filter(Boolean)
+    if (!paths.length) return
+    setMods(await window.tidal.importInstanceMods(instance.id, paths))
+    setMessage(`Imported ${paths.length} mod${paths.length === 1 ? '' : 's'}`)
+  }
 
   async function play(): Promise<void> {
     setError(null)
@@ -187,14 +200,36 @@ export function InstanceDetailsModal({
           </div>
         </section>
 
-        <section>
+        <section
+          onDragOver={(event) => {
+            event.preventDefault()
+            setDragging(true)
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault()
+            setDragging(false)
+            void importDropped([...event.dataTransfer.files])
+          }}
+        >
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-mute">Installed mods</h3>
-            <p className="text-xs text-mute">Add more from Discover</p>
+            <button
+              type="button"
+              onClick={onDiscover}
+              className="flex items-center gap-1.5 text-xs font-semibold text-tidal transition hover:brightness-110"
+            >
+              <Compass size={12} />
+              Discover
+            </button>
           </div>
           {mods.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-line px-4 py-16 text-center text-sm text-mute">
-              No mods in this instance yet.
+            <div
+              className={`rounded-2xl border border-dashed px-4 py-16 text-center text-sm ${
+                dragging ? 'border-tidal bg-tidal/10 text-mist' : 'border-line text-mute'
+              }`}
+            >
+              No mods in this instance yet. Drop .jar files here or use Discover.
             </div>
           ) : (
             <div className="flex flex-col gap-2">
