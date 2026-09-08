@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Compass, Play, Trash2 } from 'lucide-react'
 import type { GameInstance, InstanceModFile, InstanceRunState } from '../../../shared/types'
+import { ConfirmDialog } from './ConfirmDialog'
 import { FullscreenView } from './FullscreenView'
 
 function formatBytes(size: number): string {
@@ -42,6 +43,7 @@ export function InstanceDetailsModal({
   const [error, setError] = useState<string | null>(null)
 
   const [dragging, setDragging] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState(false)
 
   const thisRun = runInstanceId === instance.id ? runState : 'idle'
 
@@ -65,6 +67,13 @@ export function InstanceDetailsModal({
       if (status.error) setError(status.error)
     })
   }, [])
+
+  async function pickMods(): Promise<void> {
+    const paths = await window.tidal.pickInstanceJars()
+    if (!paths.length) return
+    setMods(await window.tidal.importInstanceMods(instance.id, paths))
+    setMessage(`Imported ${paths.length} mod${paths.length === 1 ? '' : 's'}`)
+  }
 
   async function importDropped(files: File[]): Promise<void> {
     const jars = files.filter((file) => file.name.toLowerCase().endsWith('.jar'))
@@ -212,16 +221,25 @@ export function InstanceDetailsModal({
             void importDropped([...event.dataTransfer.files])
           }}
         >
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between gap-2">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-mute">Installed mods</h3>
-            <button
-              type="button"
-              onClick={onDiscover}
-              className="flex items-center gap-1.5 text-xs font-semibold text-tidal transition hover:brightness-110"
-            >
-              <Compass size={12} />
-              Discover
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void pickMods()}
+                className="text-xs font-semibold text-mist transition hover:text-white"
+              >
+                Add files
+              </button>
+              <button
+                type="button"
+                onClick={onDiscover}
+                className="flex items-center gap-1.5 text-xs font-semibold text-tidal transition hover:brightness-110"
+              >
+                <Compass size={12} />
+                Browse mods
+              </button>
+            </div>
           </div>
           {mods.length === 0 ? (
             <div
@@ -260,12 +278,22 @@ export function InstanceDetailsModal({
         </section>
 
         <button
-          onClick={() => void removeInstance()}
+          onClick={() => setPendingDelete(true)}
           className="self-start text-sm text-mute transition hover:text-red-300"
         >
           Delete this instance
         </button>
       </div>
+      {pendingDelete ? (
+        <ConfirmDialog
+          title={`Delete ${instance.name}?`}
+          body="This removes the instance and its mods, worlds, and configs from Tidal. It cannot be undone."
+          confirmLabel="Delete"
+          danger
+          onCancel={() => setPendingDelete(false)}
+          onConfirm={() => void removeInstance()}
+        />
+      ) : null}
     </FullscreenView>
   )
 }

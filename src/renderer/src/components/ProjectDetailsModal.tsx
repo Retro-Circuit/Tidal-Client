@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import type { GameInstance, ModpackCard, ProjectDetails } from '../../../shared/types'
 import { FieldSelect } from './FieldSelect'
+import { FullscreenView } from './FullscreenView'
 
 function toSafeHtml(raw: string): string {
   const looksHtml = /<\/?[a-z][\s\S]*>/i.test(raw)
@@ -13,10 +14,12 @@ function toSafeHtml(raw: string): string {
 
 export function ProjectDetailsModal({
   card,
+  preferredInstanceId,
   onClose,
   onInstalled
 }: {
   card: ModpackCard
+  preferredInstanceId?: string
   onClose: () => void
   onInstalled: (message: string) => void
 }) {
@@ -41,15 +44,20 @@ export function ProjectDetailsModal({
       })
     void window.tidal.listInstances().then((list) => {
       if (cancelled) return
-      setInstances(list)
-      setInstanceId(list[0]?.id ?? '')
+      const sorted = [...list].sort((a, b) => (b.lastPlayed ?? b.createdAt) - (a.lastPlayed ?? a.createdAt))
+      setInstances(sorted)
+      setInstanceId(
+        (preferredInstanceId && sorted.some((item) => item.id === preferredInstanceId)
+          ? preferredInstanceId
+          : sorted[0]?.id) ?? ''
+      )
     })
     const stop = window.tidal.onInstallProgress((item) => setProgress(item.message))
     return () => {
       cancelled = true
       stop()
     }
-  }, [card])
+  }, [card, preferredInstanceId])
 
   const html = useMemo(() => toSafeHtml(details?.bodyHtml ?? card.description), [details, card.description])
   const gallery = details?.gallery ?? []
@@ -77,7 +85,9 @@ export function ProjectDetailsModal({
       onInstalled(`${card.title} installed into ${name}`)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(
+        (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+':\s*/, '')
+      )
     } finally {
       setBusy(false)
     }
@@ -94,7 +104,7 @@ export function ProjectDetailsModal({
           className="flex items-center gap-2 rounded-lg bg-tidal px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
         >
           <Download size={15} />
-          {busy ? 'Downloading…' : 'Download'}
+          {busy ? 'Installing…' : isModpack ? 'Install modpack' : 'Add to instance'}
         </button>
       }
     >

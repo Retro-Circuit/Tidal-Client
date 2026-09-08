@@ -47,8 +47,8 @@ export function resolveBuiltinMod(minecraftVersion?: string): string | null {
     join(__dirname, '../../resources/tidal-builtin.jar'),
     join(app.getAppPath(), 'resources', 'tidal-builtin.jar'),
     join(process.resourcesPath, 'tidal-builtin.jar')
-  ]
-  return candidates.find((path): path is string => Boolean(path) && existsSync(path)) ?? null
+  ].filter((path): path is string => Boolean(path))
+  return candidates.find((path) => existsSync(path)) ?? null
 }
 
 function resolveCapesDir(): string | null {

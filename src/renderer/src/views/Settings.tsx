@@ -3,11 +3,13 @@ import type { AppSettings } from '../../../shared/types'
 export function SettingsView({
   settings,
   onSettings,
-  onScanLaunchers
+  onScanLaunchers,
+  scanNote
 }: {
   settings: AppSettings | null
   onSettings: (patch: Partial<AppSettings>) => Promise<void>
   onScanLaunchers?: () => Promise<void>
+  scanNote?: string | null
 }) {
   if (!settings) return null
 
@@ -80,6 +82,7 @@ export function SettingsView({
         >
           Scan for instances
         </button>
+        {scanNote ? <p className="mt-2 text-sm text-mute">{scanNote}</p> : null}
       </section>
     </div>
   )

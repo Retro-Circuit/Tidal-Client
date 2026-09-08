@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from 'electron'
 import dns from 'node:dns'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -100,72 +100,70 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle('window:close', (event) => BrowserWindow.fromWebContents(event.sender)?.close())
 
-  ipcMain.handle('auth:login', () => loginWithMicrosoft())
-  ipcMain.handle('auth:logout', () => logout())
-  ipcMain.handle('auth:session', () => restoreSession())
+  function handle(channel: string, fn: (...args: never[]) => unknown): void {
+    ipcMain.handle(channel, async (_event, ...args: unknown[]) => {
+      try {
+        return await (fn as (...params: unknown[]) => unknown)(...args)
+      } catch (error) {
+        throw new Error(flattenError(error))
+      }
+    })
+  }
 
-  ipcMain.handle('settings:get', () => getSettings())
-  ipcMain.handle('settings:set', (_e, patch) => setSettings(patch))
+  handle('auth:login', () => loginWithMicrosoft())
+  handle('auth:logout', () => logout())
+  handle('auth:session', () => restoreSession())
 
-  ipcMain.handle('wallet:get', () => getWallet())
-  ipcMain.handle('wallet:claim-daily', () => claimDaily())
-  ipcMain.handle('wallet:grant-shadow', () => grantShadowPoints())
+  handle('settings:get', () => getSettings())
+  handle('settings:set', (patch) => setSettings(patch as Partial<import('../shared/types').AppSettings>))
 
-  ipcMain.handle('discover:search', (_e, query: string, options?: DiscoverSearch) =>
-    searchModpacks(query, options)
-  )
-  ipcMain.handle('discover:details', (_e, card: ModpackCard) => fetchProjectDetails(card))
-  ipcMain.handle('minecraft:versions', () => fetchVersionManifest())
-  ipcMain.handle('minecraft:loaders', (_e, loader, minecraftVersion: string) =>
-    fetchLoaderVersions(loader, minecraftVersion)
+  handle('wallet:get', () => getWallet())
+  handle('wallet:claim-daily', () => claimDaily())
+  handle('wallet:grant-shadow', () => grantShadowPoints())
+
+  handle('discover:search', (query, options) => searchModpacks(query as string, options as DiscoverSearch | undefined))
+  handle('discover:details', (card) => fetchProjectDetails(card as ModpackCard))
+  handle('minecraft:versions', () => fetchVersionManifest())
+  handle('minecraft:loaders', (loader, minecraftVersion) =>
+    fetchLoaderVersions(loader as import('../shared/types').ModLoaderId, minecraftVersion as string)
   )
 
-  ipcMain.handle('instance:list', () => getInstances())
-  ipcMain.handle('instance:scan-foreign', () => scanForeignInstances())
-  ipcMain.handle('instance:import-foreign', (_e, items: ForeignInstance[]) => importForeignInstances(items))
-  ipcMain.handle('instance:create', async (_e, request: CreateInstanceRequest) => {
-    try {
-      return await createCustomInstance(request)
-    } catch (error) {
-      throw new Error(flattenError(error))
-    }
-  })
-  ipcMain.handle('instance:vanilla', async (_e, version?: string) => {
-    try {
-      return await createVanillaInstance(version)
-    } catch (error) {
-      throw new Error(flattenError(error))
-    }
-  })
-  ipcMain.handle('instance:install', async (_e, pack: ModpackCard) => {
-    try {
-      return await installModpack(pack)
-    } catch (error) {
-      throw new Error(flattenError(error))
-    }
-  })
-  ipcMain.handle('instance:install-content', async (_e, pack: ModpackCard, instanceId: string) => {
-    try {
-      return await installContentToInstance(pack, instanceId)
-    } catch (error) {
-      throw new Error(flattenError(error))
-    }
-  })
-  ipcMain.handle('instance:mods', (_e, instanceId: string) => listInstanceMods(instanceId))
-  ipcMain.handle('instance:import-mods', (_e, instanceId: string, paths: string[]) =>
-    importInstanceMods(instanceId, paths)
+  handle('instance:list', () => getInstances())
+  handle('instance:scan-foreign', () => scanForeignInstances())
+  handle('instance:import-foreign', (items) => importForeignInstances(items as ForeignInstance[]))
+  handle('instance:create', (request) => createCustomInstance(request as CreateInstanceRequest))
+  handle('instance:vanilla', (version) => createVanillaInstance(version as string | undefined))
+  handle('instance:install', (pack) => installModpack(pack as ModpackCard))
+  handle('instance:install-content', (pack, instanceId) =>
+    installContentToInstance(pack as ModpackCard, instanceId as string)
   )
-  ipcMain.handle('instance:delete-mod', (_e, instanceId: string, fileName: string) =>
-    deleteInstanceMod(instanceId, fileName)
+  handle('instance:mods', (instanceId) => listInstanceMods(instanceId as string))
+  handle('instance:import-mods', (instanceId, paths) =>
+    importInstanceMods(instanceId as string, paths as string[])
   )
-  ipcMain.handle('instance:delete', (_e, instanceId: string) => deleteInstance(instanceId))
-  ipcMain.handle('instance:launch', async (_e, id: string) => {
+  handle('instance:pick-jars', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Add mods',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Minecraft mods', extensions: ['jar'] }]
+    })
+    return result.canceled ? [] : result.filePaths
+  })
+  handle('instance:delete-mod', (instanceId, fileName) =>
+    deleteInstanceMod(instanceId as string, fileName as string)
+  )
+  handle('instance:delete', (instanceId) => deleteInstance(instanceId as string))
+  handle('instance:launch', async (id) => {
     const instance = getInstances().find((item: GameInstance) => item.id === id)
     if (!instance) return { ok: false, error: 'Instance not found' }
-    return launchInstance(instance)
+    try {
+      return await launchInstance(instance)
+    } catch (error) {
+      return { ok: false, error: flattenError(error) }
+    }
   })
-  ipcMain.handle('instance:stop', () => stopInstance())
-  ipcMain.handle('instance:run-state', () => getRunStatus())
+  handle('instance:stop', () => stopInstance())
+  handle('instance:run-state', () => getRunStatus())
 
   createWindow()
   app.on('activate', () => {

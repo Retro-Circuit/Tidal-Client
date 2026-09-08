@@ -62,6 +62,7 @@ const api = {
     ipcRenderer.invoke('instance:mods', instanceId) as Promise<InstanceModFile[]>,
   importInstanceMods: (instanceId: string, paths: string[]) =>
     ipcRenderer.invoke('instance:import-mods', instanceId, paths) as Promise<InstanceModFile[]>,
+  pickInstanceJars: () => ipcRenderer.invoke('instance:pick-jars') as Promise<string[]>,
   pathsFromDrop: (files: File[]) => files.map((file) => webUtils.getPathForFile(file)),
   deleteInstanceMod: (instanceId: string, fileName: string) =>
     ipcRenderer.invoke('instance:delete-mod', instanceId, fileName) as Promise<void>,

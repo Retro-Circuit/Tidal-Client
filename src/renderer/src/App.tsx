@@ -17,6 +17,7 @@ export default function App() {
   const [creating, setCreating] = useState(false)
   const [foreign, setForeign] = useState<ForeignInstance[] | null>(null)
   const [instanceTick, setInstanceTick] = useState(0)
+  const [scanNote, setScanNote] = useState<string | null>(null)
   const [discoverIntent, setDiscoverIntent] = useState<{
     projectType?: ProjectType | 'all'
     gameVersion?: string
@@ -44,7 +45,7 @@ export default function App() {
     try {
       setSession(await window.tidal.login())
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message : String(error))
+      setLoginError(error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+':\s*/, '') : String(error))
     } finally {
       setLoggingIn(false)
     }
@@ -73,7 +74,12 @@ export default function App() {
         />
         <section className="no-drag min-h-0 flex-1 overflow-hidden px-7 py-6">
           {view === 'discover' ? (
-            <DiscoverView settings={settings} onSettings={patchSettings} intent={discoverIntent} />
+            <DiscoverView
+              settings={settings}
+              onSettings={patchSettings}
+              intent={discoverIntent}
+              onClearIntent={() => setDiscoverIntent(undefined)}
+            />
           ) : null}
           {view === 'instances' ? (
             <InstancesView
@@ -89,9 +95,15 @@ export default function App() {
             <SettingsView
               settings={settings}
               onSettings={patchSettings}
+              scanNote={scanNote}
               onScanLaunchers={async () => {
                 const found = await window.tidal.scanForeignInstances()
-                if (found.length) setForeign(found)
+                if (found.length) {
+                  setScanNote(null)
+                  setForeign(found)
+                } else {
+                  setScanNote('No other launcher instances were found on this PC.')
+                }
               }}
             />
           ) : null}

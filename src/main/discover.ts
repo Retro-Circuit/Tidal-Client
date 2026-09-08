@@ -83,7 +83,8 @@ async function searchCurseForgeClass(
   query: string,
   apiKey: string,
   classId: number,
-  offset: number
+  offset: number,
+  gameVersion?: string
 ): Promise<ModpackCard[]> {
   const params = new URLSearchParams({
     gameId: '432',
@@ -94,6 +95,7 @@ async function searchCurseForgeClass(
     sortOrder: 'desc'
   })
   if (query.trim()) params.set('searchFilter', query.trim())
+  if (gameVersion) params.set('gameVersion', gameVersion)
 
   const res = await fetch(`${CURSEFORGE}/mods/search?${params.toString()}`, {
     headers: {
@@ -134,7 +136,9 @@ async function searchCurseForge(query: string, apiKey: string, options: Discover
           : options.projectType === 'modpack'
             ? [4471]
             : [4471, 6, 12]
-  const groups = await Promise.all(classIds.map((classId) => searchCurseForgeClass(query, apiKey, classId, offset)))
+  const groups = await Promise.all(
+    classIds.map((classId) => searchCurseForgeClass(query, apiKey, classId, offset, options.gameVersion))
+  )
   return groups.flat()
 }
 
@@ -235,10 +239,21 @@ export async function fetchProjectDetails(card: ModpackCard): Promise<ProjectDet
   }
 }
 
-export async function fetchModrinthVersion(projectId: string): Promise<{
+export async function fetchModrinthVersion(
+  projectId: string,
+  match?: { gameVersion?: string; loader?: string }
+): Promise<{
   files: { url: string; filename: string; primary: boolean }[]
 }> {
-  const res = await fetch(`${MODRINTH}/project/${projectId}/version`, {
+  const params = new URLSearchParams()
+  if (match?.gameVersion) params.set('game_versions', JSON.stringify([match.gameVersion]))
+  if (match?.loader === 'vanilla' || match?.loader === 'minecraft') {
+    params.set('loaders', JSON.stringify(['fabric']))
+  } else if (match?.loader) {
+    params.set('loaders', JSON.stringify([match.loader]))
+  }
+  const query = params.toString()
+  const res = await fetch(`${MODRINTH}/project/${projectId}/version${query ? `?${query}` : ''}`, {
     headers: { 'User-Agent': USER_AGENT }
   })
   if (!res.ok) throw new Error('Could not load Modrinth versions')
@@ -246,15 +261,25 @@ export async function fetchModrinthVersion(projectId: string): Promise<{
     files: { url: string; filename: string; primary: boolean }[]
   }>
   const latest = versions[0]
-  if (!latest) throw new Error('This Modrinth project has no versions')
+  if (!latest) {
+    if (match?.gameVersion) {
+      throw new Error(
+        `No ${match.loader && match.loader !== 'vanilla' ? match.loader + ' ' : ''}build for Minecraft ${match.gameVersion}. Pick a matching instance or another version.`
+      )
+    }
+    throw new Error('This Modrinth project has no versions')
+  }
   return latest
 }
 
 export async function fetchCurseForgeLatestFile(
   projectId: number,
-  apiKey: string
+  apiKey: string,
+  match?: { gameVersion?: string }
 ): Promise<{ id: number; downloadUrl: string; fileName: string }> {
-  const res = await fetch(`${CURSEFORGE}/mods/${projectId}/files?pageSize=5`, {
+  const params = new URLSearchParams({ pageSize: '20' })
+  if (match?.gameVersion) params.set('gameVersion', match.gameVersion)
+  const res = await fetch(`${CURSEFORGE}/mods/${projectId}/files?${params.toString()}`, {
     headers: {
       Accept: 'application/json',
       'x-api-key': apiKey,
@@ -275,6 +300,7 @@ export async function fetchCurseForgeLatestFile(
     const urlJson = (await urlRes.json()) as { data: string }
     downloadUrl = urlJson.data
   }
+  if (!downloadUrl) throw new Error('This CurseForge file has no download URL')
   return { id: file.id, downloadUrl, fileName: file.fileName }
 }
 

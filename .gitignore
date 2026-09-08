@@ -13,3 +13,10 @@ bundled-mod-121/.idea
 .DS_Store
 Thumbs.db
 resources/tidal-builtin/*.jar
+*.tsbuildinfo
+src/renderer/**/*.js
+src/renderer/**/*.d.ts
+!src/renderer/src/env.d.ts
+src/shared/*.js
+src/shared/*.d.ts
+src/preload/index.js

@@ -75,23 +75,37 @@ interface LoaderPlan {
   loaderVersion: string
 }
 
+interface McVersionMeta {
+  id: string
+  url: string
+  type?: string
+}
+
 async function ensureMinecraft(version: string, onProgress: (msg: string) => void): Promise<void> {
   onProgress(`Installing Minecraft ${version}`)
   const list = await loadVersionList()
   const meta = list.versions.find((v) => v.id === version)
-  if (!meta) throw new Error(`Minecraft ${version} was not found in the version manifest`)
+  if (!meta?.url) throw new Error(`Minecraft ${version} was not found in the version manifest`)
   await withRetries(`Minecraft ${version} files`, () => install(meta, minecraftRoot()))
 }
 
-async function loadVersionList(): Promise<{ versions: Array<{ id: string; url?: string; type?: string }> }> {
+async function loadVersionList(): Promise<{ versions: McVersionMeta[] }> {
   try {
-    return await withRetries('Minecraft version list', () => getVersionList())
+    const list = await withRetries('Minecraft version list', () => getVersionList())
+    return {
+      versions: list.versions
+        .filter((item) => Boolean(item.id && item.url))
+        .map((item) => ({ id: item.id, url: item.url, type: item.type }))
+    }
   } catch (first) {
     const res = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json', {
       headers: { 'User-Agent': 'TidalClient/0.1.0 (tidal-client)' }
     })
     if (!res.ok) throw new Error(flattenError(first))
-    return (await res.json()) as { versions: Array<{ id: string; url?: string; type?: string }> }
+    const data = (await res.json()) as { versions: Array<{ id?: string; url?: string; type?: string }> }
+    return {
+      versions: (data.versions ?? []).filter((item): item is McVersionMeta => Boolean(item.id && item.url))
+    }
   }
 }
 
@@ -421,7 +435,10 @@ export async function installContentToInstance(pack: ModpackCard, instanceId: st
 
   if (pack.source === 'modrinth') {
     const projectId = pack.slug ?? pack.id.replace(/^modrinth:/, '')
-    const version = await fetchModrinthVersion(projectId)
+    const version = await fetchModrinthVersion(projectId, {
+      gameVersion: instance.minecraftVersion,
+      loader: instance.loader
+    })
     const file = version.files.find((item) => item.primary) ?? version.files[0]
     if (!file) throw new Error('No file available for this project')
     await downloadFile(file.url, join(destDir, file.filename))
@@ -429,7 +446,9 @@ export async function installContentToInstance(pack: ModpackCard, instanceId: st
     const settings = getSettings()
     if (!settings.curseforgeApiKey) throw new Error('A CurseForge API key is required')
     const projectId = pack.curseProjectId ?? Number(pack.id.replace(/^curseforge:/, ''))
-    const file = await fetchCurseForgeLatestFile(projectId, settings.curseforgeApiKey)
+    const file = await fetchCurseForgeLatestFile(projectId, settings.curseforgeApiKey, {
+      gameVersion: instance.minecraftVersion
+    })
     await downloadFile(file.downloadUrl, join(destDir, file.fileName))
   }
 

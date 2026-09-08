@@ -17,11 +17,13 @@ const TYPES: { id: ProjectType | 'all'; label: string }[] = [
 export function DiscoverView({
   settings,
   onSettings,
-  intent
+  intent,
+  onClearIntent
 }: {
   settings: AppSettings | null
   onSettings: (patch: Partial<AppSettings>) => Promise<void>
   intent?: { projectType?: ProjectType | 'all'; gameVersion?: string; instanceId?: string }
+  onClearIntent?: () => void
 }) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
@@ -93,9 +95,14 @@ export function DiscoverView({
         <h2 className="text-3xl font-semibold tracking-tight">Discover</h2>
         <p className="mt-1 text-sm text-mute">
           {intent?.gameVersion
-            ? `Showing ${intent.gameVersion} content. Click a project to install.`
-            : 'Click a project to read more and download.'}
+            ? `Filtered to Minecraft ${intent.gameVersion}. Click a project to install into the selected instance.`
+            : 'Search, then click a project to install a modpack or add it to an instance.'}
         </p>
+        {intent?.gameVersion && onClearIntent ? (
+          <button type="button" onClick={onClearIntent} className="mt-2 text-xs font-semibold text-tidal">
+            Clear version filter
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -180,6 +187,7 @@ export function DiscoverView({
       {selected ? (
         <ProjectDetailsModal
           card={selected}
+          preferredInstanceId={intent?.instanceId}
           onClose={() => setSelected(null)}
           onInstalled={(message) =>
             setProgress({ instanceId: selected.id, phase: 'done', message, progress: 1, total: 1 })
