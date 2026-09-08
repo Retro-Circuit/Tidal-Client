@@ -14,17 +14,8 @@ public class KeyboardHandlerMixin {
         MenuKeys.onKey(key, action);
     }
 
-    @Inject(method = "keyPress", at = @At("HEAD"), require = 0)
-    private void tidal$key(long window, Object event, CallbackInfo ci) {
-        try {
-            int key = (int) event.getClass().getMethod("key").invoke(event);
-            int action = 1;
-            try {
-                action = (int) event.getClass().getMethod("action").invoke(event);
-            } catch (ReflectiveOperationException ignored) {
-            }
-            MenuKeys.onKey(key, action);
-        } catch (Throwable ignored) {
-        }
+    @Inject(method = "keyCallback", at = @At("HEAD"), require = 0)
+    private void tidal$keyCallback(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
+        MenuKeys.onKey(key, action);
     }
 }

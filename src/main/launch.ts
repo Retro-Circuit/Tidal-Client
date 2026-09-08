@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { launch, createMinecraftProcessWatcher, DEFAULT_EXTRA_JVM_ARGS } from '@xmcl/core'
 import type { GameInstance, InstanceRunStatus, LaunchResult } from '../shared/types'
@@ -62,6 +62,37 @@ function tail(text: string, lines = 16): string {
     .filter(Boolean)
     .slice(-lines)
     .join('\n')
+}
+
+function summarizeCrash(gameDir: string, output: string): string {
+  const fromLog = crashHint(output)
+  if (fromLog) return fromLog
+  const reports = join(gameDir, 'crash-reports')
+  if (!existsSync(reports)) return ''
+  const latest = readdirSync(reports)
+    .filter((name) => name.endsWith('.txt'))
+    .sort()
+    .at(-1)
+  if (!latest) return ''
+  try {
+    return crashHint(readFileSync(join(reports, latest), 'utf8'))
+  } catch {
+    return ''
+  }
+}
+
+function crashHint(text: string): string {
+  const mixin = text.match(/Mixin apply for mod [^\n]+/)
+  if (mixin?.[0]) {
+    const invalid = text.match(/InvalidInjectionException: ([^\n]+)/)
+    return invalid ? `${mixin[0]}\n${invalid[1]}` : mixin[0]
+  }
+  const exception = text.match(/^java\.[^\n]+/m)
+  const description = text.match(/^Description: ([^\n]+)/m)
+  if (exception || description) {
+    return [description?.[1], exception?.[0]].filter(Boolean).join('\n')
+  }
+  return ''
 }
 
 export async function launchInstance(instance: GameInstance): Promise<LaunchResult> {
@@ -156,10 +187,10 @@ export async function launchInstance(instance: GameInstance): Promise<LaunchResu
       if (running?.process !== child) return
       flushLog()
       const crashed = event.code !== 0 && event.code != null
-      const snippet = tail(output)
+      const hint = summarizeCrash(gameDir, output)
       markStopped(
         crashed
-          ? snippet || `Minecraft exited with code ${event.code}`
+          ? hint || tail(output) || `Minecraft exited with code ${event.code}`
           : undefined
       )
     })

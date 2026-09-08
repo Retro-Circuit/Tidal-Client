@@ -11,10 +11,12 @@ function formatBytes(size: number): string {
 }
 
 function friendlyLaunchError(error: string): string {
+  const mixin = error.match(/Mixin apply for mod [^\n]+/)
+  if (mixin?.[0]) return mixin[0]
+  const invalid = error.match(/InvalidInjectionException: ([^\n]+)/)
+  if (invalid?.[1]) return invalid[1]
   const critical = error.match(/Critical injection failure: ([^\[]+)/)
   if (critical?.[1]) return critical[1].trim()
-  const mixin = error.match(/Mixin apply for mod [^\n]+ failed ([^\n]+)/)
-  if (mixin?.[1]) return mixin[1].trim()
   return error
     .replace(/<\/?log4j:[^>]+>/g, '')
     .replace(/<!\[CDATA\[|\]\]>/g, '')

@@ -39,7 +39,7 @@ final class PlayerPortrait {
         }
         if (minecraft.player instanceof AbstractClientPlayer player) {
             PlayerSkin skin = player.getSkin();
-            return skin.texture();
+            return SkinCompat.bodyId(skin);
         }
         return null;
     }
