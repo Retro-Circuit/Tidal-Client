@@ -11,7 +11,7 @@ final class HudWidgets {
         return new Widget[] {
             new Widget("Keystrokes", () -> TidalMods.hudX, () -> TidalMods.hudY, () -> TidalMods.hudScale,
                 (x) -> TidalMods.hudX = x, (y) -> TidalMods.hudY = y, (s) -> TidalMods.hudScale = s,
-                KeystrokesHud.WIDTH, KeystrokesHud.HEIGHT,
+                KeystrokesHud.width(), KeystrokesHud.height(),
                 (g, mc, x, y) -> KeystrokesHud.draw(g, mc, 0, 0, true)),
             new Widget("Armor", () -> TidalMods.armorX, () -> TidalMods.armorY, () -> TidalMods.armorScale,
                 (x) -> TidalMods.armorX = x, (y) -> TidalMods.armorY = y, (s) -> TidalMods.armorScale = s,

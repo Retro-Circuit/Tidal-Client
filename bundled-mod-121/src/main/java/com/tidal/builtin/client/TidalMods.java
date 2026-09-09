@@ -12,6 +12,7 @@ import java.util.Set;
 
 public final class TidalMods {
     public static boolean keystrokes = false;
+    public static boolean keystrokesInfo = false;
     public static int hudX = 12;
     public static int hudY = 12;
     public static float hudScale = 1.0f;
@@ -127,6 +128,7 @@ public final class TidalMods {
                     armor = false;
                 } else {
                     keystrokes = bool(p, "keystrokes", false);
+                    keystrokesInfo = bool(p, "keystrokesInfo", false);
                     armor = bool(p, "armor", false);
                 }
                 if (schema < 3) {
@@ -175,6 +177,7 @@ public final class TidalMods {
             Properties p = new Properties();
             p.setProperty("schema", "4");
             p.setProperty("keystrokes", Boolean.toString(keystrokes));
+            p.setProperty("keystrokesInfo", Boolean.toString(keystrokesInfo));
             p.setProperty("hudX", Integer.toString(hudX));
             p.setProperty("hudY", Integer.toString(hudY));
             p.setProperty("hudScale", Float.toString(hudScale));

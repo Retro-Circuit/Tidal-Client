@@ -97,7 +97,7 @@ public final class MenuKeys {
             && (glfwDown(minecraft, GLFW.GLFW_KEY_LEFT_ALT) || glfwDown(minecraft, GLFW.GLFW_KEY_RIGHT_ALT));
     }
 
-    private static boolean glfwDown(Minecraft minecraft, int key) {
+    static boolean glfwDown(Minecraft minecraft, int key) {
         try {
             long handle = windowHandle(minecraft);
             return handle != 0L && GLFW.glfwGetKey(handle, key) == GLFW.GLFW_PRESS;
