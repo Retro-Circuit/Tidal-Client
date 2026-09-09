@@ -8,14 +8,15 @@ import { randomUUID } from 'node:crypto'
 import { Version } from '@xmcl/core'
 import AdmZip from 'adm-zip'
 import {
-  getVersionList,
-  install,
-  installDependencies,
+  installAssetsTask,
   installFabric,
   installForge,
+  installLibrariesTask,
   installNeoForged,
-  installQuiltVersion
+  installQuiltVersion,
+  installVersionTask
 } from '@xmcl/installer'
+import { Agent } from 'undici'
 import type {
   CreateInstanceRequest,
   GameInstance,
@@ -30,7 +31,7 @@ import { curseForgeFileDownloadUrl, fetchCurseForgeLatestFile, fetchModrinthVers
 import { findJava } from './java'
 import { injectBuiltinMod, isHiddenBuiltin } from './builtin'
 import { getInstances, getSettings, removeInstance, upsertInstance } from './store'
-import { flattenError, withRetries } from './errors'
+import { flattenError, withRetries, withTimeout } from './errors'
 import { fetchLoaderVersions } from './versions'
 
 export function minecraftRoot(): string {
@@ -62,9 +63,101 @@ function sendProgress(payload: InstallProgress): void {
   }
 }
 
+const USER_AGENT = 'TidalClient/0.1.0 (tidal-client)'
+const MANIFEST_URLS = [
+  'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',
+  'https://launchermeta.mojang.com/mc/game/version_manifest_v2.json',
+  'https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json'
+]
+
+function downloadDispatcher() {
+  return new Agent({
+    connections: 8,
+    pipelining: 1,
+    connect: { timeout: 20_000, family: 4 },
+    headersTimeout: 30_000,
+    bodyTimeout: 120_000,
+    keepAliveTimeout: 10_000
+  }) as never
+}
+
+function installNetworkOptions() {
+  const dispatcher = downloadDispatcher()
+  return {
+    side: 'client' as const,
+    dispatcher,
+    headers: { 'User-Agent': USER_AGENT },
+    skipHead: true,
+    librariesDownloadConcurrency: 8,
+    assetsDownloadConcurrency: 8,
+    mavenHost: ['https://libraries.minecraft.net', 'https://bmclapi2.bangbang93.com/maven'],
+    assetsHost: ['https://resources.download.minecraft.net', 'https://bmclapi2.bangbang93.com/assets'],
+    json: (version: McVersionMeta) => mojangFallbacks(version.url)
+  }
+}
+
+function mojangFallbacks(url: string): string[] {
+  const urls = [url]
+  const swaps: Array<[string, string]> = [
+    ['piston-meta.mojang.com', 'bmclapi2.bangbang93.com'],
+    ['piston-data.mojang.com', 'bmclapi2.bangbang93.com'],
+    ['launchermeta.mojang.com', 'bmclapi2.bangbang93.com'],
+    ['launcher.mojang.com', 'bmclapi2.bangbang93.com']
+  ]
+  for (const [from, to] of swaps) {
+    if (url.includes(from)) urls.push(url.replace(from, to))
+  }
+  return [...new Set(urls)]
+}
+
+interface InstallTask<T> {
+  progress: number
+  total: number
+  cancel?: () => void
+  startAndWait: (listeners?: { onUpdate?: () => void }) => Promise<T>
+}
+
+async function runInstallTask<T>(label: string, task: InstallTask<T>, onProgress: (msg: string) => void): Promise<T> {
+  let lastUpdate = Date.now()
+  const stall = setInterval(() => {
+    if (Date.now() - lastUpdate > 90_000) {
+      try {
+        task.cancel?.()
+      } catch {
+        /* ignore */
+      }
+    }
+  }, 5_000)
+  const pulse = setInterval(() => {
+    onProgress(formatTaskProgress(label, task.progress, task.total))
+  }, 4_000)
+  try {
+    onProgress(label)
+    return await withTimeout(label, 25 * 60_000, () =>
+      task.startAndWait({
+        onUpdate: () => {
+          lastUpdate = Date.now()
+          onProgress(formatTaskProgress(label, task.progress, task.total))
+        }
+      })
+    )
+  } finally {
+    clearInterval(stall)
+    clearInterval(pulse)
+  }
+}
+
+function formatTaskProgress(label: string, progress: number, total: number): string {
+  if (total > 0) return `${label} (${Math.min(100, Math.round((progress / total) * 100))}%)`
+  return label
+}
+
 async function downloadFile(url: string, dest: string): Promise<void> {
   await mkdir(dirname(dest), { recursive: true })
-  const res = await fetch(url, { headers: { 'User-Agent': 'TidalClient/0.1.0' } })
+  const res = await fetch(url, {
+    headers: { 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(120_000)
+  })
   if (!res.ok || !res.body) throw new Error(`Download failed: ${url}`)
   await pipeline(Readable.fromWeb(res.body as never), createWriteStream(dest))
 }
@@ -82,31 +175,36 @@ interface McVersionMeta {
 }
 
 async function ensureMinecraft(version: string, onProgress: (msg: string) => void): Promise<void> {
-  onProgress(`Installing Minecraft ${version}`)
+  onProgress(`Looking up Minecraft ${version}`)
   const list = await loadVersionList()
   const meta = list.versions.find((v) => v.id === version)
   if (!meta?.url) throw new Error(`Minecraft ${version} was not found in the version manifest`)
-  await withRetries(`Minecraft ${version} files`, () => install(meta, minecraftRoot()))
+  const root = minecraftRoot()
+  const options = installNetworkOptions()
+  await withRetries(`Minecraft ${version} client`, () =>
+    runInstallTask(`Installing Minecraft ${version}`, installVersionTask(meta, root, options), onProgress)
+  )
 }
 
 async function loadVersionList(): Promise<{ versions: McVersionMeta[] }> {
-  try {
-    const list = await withRetries('Minecraft version list', () => getVersionList())
-    return {
-      versions: list.versions
-        .filter((item) => Boolean(item.id && item.url))
-        .map((item) => ({ id: item.id, url: item.url, type: item.type }))
-    }
-  } catch (first) {
-    const res = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json', {
-      headers: { 'User-Agent': 'TidalClient/0.1.0 (tidal-client)' }
-    })
-    if (!res.ok) throw new Error(flattenError(first))
-    const data = (await res.json()) as { versions: Array<{ id?: string; url?: string; type?: string }> }
-    return {
-      versions: (data.versions ?? []).filter((item): item is McVersionMeta => Boolean(item.id && item.url))
+  let last = 'Could not load the Minecraft version list'
+  for (const url of MANIFEST_URLS) {
+    try {
+      const res = await withTimeout('Minecraft version list', 20_000, () =>
+        fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(15_000) })
+      )
+      if (!res.ok) {
+        last = `Could not load Minecraft versions (${res.status})`
+        continue
+      }
+      const data = (await res.json()) as { versions: Array<{ id?: string; url?: string; type?: string }> }
+      const versions = (data.versions ?? []).filter((item): item is McVersionMeta => Boolean(item.id && item.url))
+      if (versions.length) return { versions }
+    } catch (error) {
+      last = flattenError(error)
     }
   }
+  throw new Error(last)
 }
 
 async function installLoader(plan: LoaderPlan, onProgress: (msg: string) => void): Promise<string> {
@@ -190,9 +288,14 @@ export async function ensureBuiltinRuntime(instance: GameInstance): Promise<Game
 }
 
 async function finishVersion(versionId: string, onProgress: (msg: string) => void): Promise<void> {
-  onProgress('Downloading libraries and assets')
   const resolved = await Version.parse(minecraftRoot(), versionId)
-  await installDependencies(resolved)
+  const options = installNetworkOptions()
+  await withRetries('Minecraft libraries', () =>
+    runInstallTask('Downloading libraries', installLibrariesTask(resolved, options), onProgress)
+  )
+  await withRetries('Minecraft assets', () =>
+    runInstallTask('Downloading assets', installAssetsTask(resolved, options), onProgress)
+  )
 }
 
 interface MrIndex {
