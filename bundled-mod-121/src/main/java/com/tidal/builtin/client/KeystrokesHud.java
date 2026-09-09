@@ -51,7 +51,7 @@ public final class KeystrokesHud {
     private KeystrokesHud() {}
 
     static int width() {
-        return TidalMods.keystrokesInfo ? 110 : 78;
+        return TidalMods.keystrokesInfo ? 62 : 44;
     }
 
     static int height() {
