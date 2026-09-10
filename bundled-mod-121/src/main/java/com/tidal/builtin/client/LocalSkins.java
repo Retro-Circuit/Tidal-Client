@@ -118,6 +118,36 @@ public final class LocalSkins {
         return loaded == null ? null : loaded.textureId;
     }
 
+    public static Path equippedFile() {
+        String key = TidalMods.equippedSkin;
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        Path path = Path.of(key);
+        return Files.isRegularFile(path) ? path : null;
+    }
+
+    public static boolean equippedSlim() {
+        String key = TidalMods.equippedSkin;
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        Loaded loaded = textures.get(key);
+        if (loaded != null) {
+            return loaded.entry.slim;
+        }
+        Path file = equippedFile();
+        if (file == null) {
+            return false;
+        }
+        try (InputStream stream = Files.newInputStream(file)) {
+            BufferedImage image = ImageIO.read(stream);
+            return image != null && image.getHeight() == 64 && ((image.getRGB(50, 16) >>> 24) & 0xFF) < 16;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     public static PlayerSkin.Model modelOr(PlayerSkin.Model fallback) {
         String key = previewKey != null ? previewKey : TidalMods.equippedSkin;
         if (key == null || key.isBlank()) {

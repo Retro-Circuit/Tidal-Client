@@ -5,6 +5,7 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.PlainTextContents;
+import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.regex.Pattern;
 
 public final class ChatNames {
     private static final Component BEDROCK = Component.literal(" B").withStyle(style -> style.withColor(0x0349FC).withBold(true));
+    private static final ResourceLocation TAB_FONT = ResourceLocation.fromNamespaceAndPath("tidal-builtin", "tab");
 
     private ChatNames() {}
 
@@ -26,6 +28,10 @@ public final class ChatNames {
 
     public static Component tab(Component name, PlayerInfo info) {
         Component rewritten = rewrite(name);
+        if (CapeShare.isTidal(info.getProfile().getId())) {
+            Component icon = Component.literal("\uE000").withStyle(style -> style.withFont(TAB_FONT));
+            rewritten = Component.empty().append(icon).append(Component.literal(" ")).append(rewritten);
+        }
         if (TidalMods.bedrockDetect && BedrockPlayers.isBedrock(info)) {
             return Component.empty().append(rewritten).append(BEDROCK);
         }

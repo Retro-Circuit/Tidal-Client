@@ -1,6 +1,7 @@
 package com.tidal.builtin.mixin;
 
 import com.tidal.builtin.client.Glass;
+import com.tidal.builtin.client.SkinArchive;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -18,6 +19,10 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "render", at = @At("RETURN"))
     private void tidal$logo(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        try {
+            SkinArchive.ensure(this.minecraft);
+        } catch (Throwable ignored) {
+        }
         int size = 22;
         try {
             Glass.logo(graphics, this.width - size - 10, 10, size);

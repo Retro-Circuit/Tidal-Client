@@ -3,16 +3,20 @@ package com.tidal.builtin.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.PlainTextContents;
+import net.minecraft.resources.Identifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ChatNames {
     private static final Component BEDROCK = Component.literal(" B").withStyle(style -> style.withColor(0x0349FC).withBold(true));
+    private static final Identifier TAB_FONT = Identifier.fromNamespaceAndPath("tidal-builtin", "tab");
 
     private ChatNames() {}
 
@@ -26,10 +30,31 @@ public final class ChatNames {
 
     public static Component tab(Component name, PlayerInfo info) {
         Component rewritten = rewrite(name);
+        if (CapeShare.isTidal(profileId(info))) {
+            Component icon = Component.literal("\uE000").withStyle(style -> style.withFont(new FontDescription.Resource(TAB_FONT)));
+            rewritten = Component.empty().append(icon).append(Component.literal(" ")).append(rewritten);
+        }
         if (TidalMods.bedrockDetect && BedrockPlayers.isBedrock(info)) {
             return Component.empty().append(rewritten).append(BEDROCK);
         }
         return rewritten;
+    }
+
+    private static UUID profileId(PlayerInfo info) {
+        try {
+            Object profile = info.getProfile();
+            try {
+                Object id = profile.getClass().getMethod("id").invoke(profile);
+                if (id instanceof UUID uuid) {
+                    return uuid;
+                }
+            } catch (NoSuchMethodException ignored) {
+            }
+            Object id = profile.getClass().getMethod("getId").invoke(profile);
+            return id instanceof UUID uuid ? uuid : null;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     public static Component rewrite(Component source) {

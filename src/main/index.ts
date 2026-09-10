@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loginWithMicrosoft, logout, restoreSession } from './auth'
 import { flattenError } from './errors'
+import { getSkinPreview } from './skins'
 import { fetchProjectDetails, searchModpacks } from './discover'
 import { createCustomInstance, createVanillaInstance, deleteInstance, deleteInstanceMod, importForeignInstances, importInstanceMods, installContentToInstance, installModpack, listInstanceMods } from './install'
 import { scanForeignInstances } from './importScan'
@@ -113,6 +114,7 @@ app.whenReady().then(async () => {
   handle('auth:login', () => loginWithMicrosoft())
   handle('auth:logout', () => logout())
   handle('auth:session', () => restoreSession())
+  handle('skins:preview', (uuid) => getSkinPreview(uuid as string | undefined))
 
   handle('settings:get', () => getSettings())
   handle('settings:set', (patch) => setSettings(patch as Partial<import('../shared/types').AppSettings>))

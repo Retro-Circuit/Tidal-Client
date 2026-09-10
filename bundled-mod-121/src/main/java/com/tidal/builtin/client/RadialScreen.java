@@ -144,9 +144,6 @@ public class RadialScreen extends Screen {
         for (int i = 0; i < LABELS.length; i++) {
             float[] span = segmentSpan(i);
             boolean hot = this.hovered == i;
-            Glass.fillAnnulusSector(graphics, cx, cy, inner, outer, span[0], span[1], hot ? Glass.RING_HOT : Glass.RING);
-            Glass.fillAnnulusSector(graphics, cx, cy, outer - 2, outer, span[0], span[1], hot ? Glass.RING_SHEEN_HOT : Glass.RING_SHEEN);
-            Glass.fillAnnulusSector(graphics, cx, cy, inner, inner + 1, span[0], span[1], 0x28FFFFFF);
             float mid = (span[0] + span[1]) / 2.0f;
             if (span[1] < span[0]) {
                 mid = RadialMath.tau(span[0] + RadialMath.wrappedLength(span[0], span[1]) / 2.0f);
@@ -154,7 +151,7 @@ public class RadialScreen extends Screen {
             int iconR = (inner + outer) / 2;
             int ix = cx + Math.round((float) Math.cos(mid) * iconR);
             int iy = cy + Math.round((float) Math.sin(mid) * iconR);
-            drawIcon(graphics, i, ix, iy);
+            GuiTextures.blitRadial(graphics, i, ix, iy, Math.max(36, (outer - inner) * 2 + 8), hot);
         }
 
         Glass.fillCircle(graphics, cx, cy, inner - 1, 0xF0101218);
@@ -177,28 +174,5 @@ public class RadialScreen extends Screen {
     private static float[] segmentSpan(int index) {
         float mid = START + index * SLICE + SLICE / 2.0f;
         return new float[] {mid - SLICE / 2.0f + GAP / 2.0f, mid + SLICE / 2.0f - GAP / 2.0f};
-    }
-
-    private static void drawIcon(GuiGraphics graphics, int id, int cx, int cy) {
-        int color = 0xFFF2F4F7;
-        if (id == 0) {
-            int s = GuiTextures.settingsSize / 2;
-            HudBlit.image(graphics, GuiTextures.SETTINGS, cx - s, cy - s, s * 2);
-            return;
-        }
-        if (id == 1) {
-            Glass.fillCircle(graphics, cx, cy - 4, 3, color);
-            Glass.roundedFill(graphics, cx - 5, cy + 1, cx + 6, cy + 8, 4, color);
-            return;
-        }
-        if (id == 2) {
-            Glass.roundedFill(graphics, cx - 7, cy - 7, cx - 1, cy - 1, 2, 0xFF4EA3FF);
-            Glass.roundedFill(graphics, cx + 1, cy - 7, cx + 7, cy - 1, 2, 0xFFC47CFF);
-            Glass.roundedFill(graphics, cx - 7, cy + 1, cx - 1, cy + 7, 2, 0xFF3DDC84);
-            Glass.roundedFill(graphics, cx + 1, cy + 1, cx + 7, cy + 7, 2, 0xFFE8C547);
-            return;
-        }
-        Glass.roundedFill(graphics, cx - 7, cy - 6, cx + 2, cy + 1, 3, color);
-        Glass.roundedFill(graphics, cx - 2, cy - 1, cx + 7, cy + 6, 3, 0xFF0349FC);
     }
 }

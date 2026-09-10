@@ -1,4 +1,4 @@
-export type NavView = 'discover' | 'instances' | 'settings'
+export type NavView = 'home' | 'discover' | 'instances' | 'cosmetics' | 'settings'
 
 export type ModpackSource = 'modrinth' | 'curseforge'
 
@@ -15,6 +15,13 @@ export interface SessionState {
   profile: MinecraftProfile | null
 }
 
+export interface SkinPreview {
+  pngBase64: string
+  capeBase64?: string | null
+  slim: boolean
+  source: 'saved' | 'account'
+}
+
 export interface AppSettings {
   curseforgeApiKey: string
   modrinthEnabled: boolean
@@ -23,6 +30,7 @@ export interface AppSettings {
   minMemoryMb: number
   javaPath: string
   importPromptDismissed: boolean
+  lastInstanceId: string
 }
 
 export interface WalletState {

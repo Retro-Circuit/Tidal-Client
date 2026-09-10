@@ -37,6 +37,10 @@ final class PlayerPortrait {
         if (local != null) {
             return local;
         }
+        ResourceLocation archived = SkinArchive.bodyLocation();
+        if (archived != null) {
+            return archived;
+        }
         if (minecraft.player instanceof AbstractClientPlayer player) {
             PlayerSkin skin = player.getSkin();
             return SkinCompat.bodyId(skin);

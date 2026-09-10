@@ -79,9 +79,10 @@ final class PlayerPortrait {
             return player.getSkin();
         }
         try {
+            SkinArchive.ensure(minecraft);
             var user = minecraft.getUser();
             var profile = new com.mojang.authlib.GameProfile(user.getProfileId(), user.getName());
-            return minecraft.getSkinManager().createLookup(profile, true).get();
+            return SkinArchive.forMenu(minecraft.getSkinManager().createLookup(profile, true).get(), user.getProfileId());
         } catch (Exception ignored) {
             return null;
         }

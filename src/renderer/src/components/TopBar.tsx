@@ -1,6 +1,7 @@
 import tidalLogo from '../assets/tidal.png'
 import { Minus, Square, X } from 'lucide-react'
 import type { SessionState } from '../../../shared/types'
+import { PlayerHead3D } from './PlayerHead3D'
 
 type TopBarProps = {
   session: SessionState
@@ -24,14 +25,10 @@ export function TopBar({ session, loggingIn, loginError, onLogin, onLogout }: To
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center gap-2 rounded-full bg-panel py-1 pr-3 pl-1 transition hover:bg-raised"
+            className="flex items-center gap-2 rounded-full bg-panel py-0.5 pr-3 pl-0.5 transition hover:bg-raised"
             title="Sign out"
           >
-            <img
-              src={session.profile.avatar}
-              alt=""
-              className="h-6 w-6 rounded-full object-cover"
-            />
+            <PlayerHead3D uuid={session.profile.id} size={28} />
             <span className="text-sm text-mist">{session.profile.name}</span>
           </button>
         ) : (

@@ -12,6 +12,13 @@
       "price": 0,
       "file": "blzxy.png",
       "exclusive": "_BLZXY"
+    },
+    {
+      "id": "shadowz",
+      "name": "Shadowz",
+      "price": 0,
+      "file": "shadowz.gif",
+      "exclusive": "_ShadowzYT"
     }
   ]
 }

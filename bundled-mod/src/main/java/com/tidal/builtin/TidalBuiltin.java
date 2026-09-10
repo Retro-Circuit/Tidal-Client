@@ -8,6 +8,7 @@ import com.tidal.builtin.client.MenuKeys;
 import com.tidal.builtin.client.PlayFeatures;
 import com.tidal.builtin.client.LayoutMenuScreen;
 import com.tidal.builtin.client.RadialScreen;
+import com.tidal.builtin.client.SkinArchive;
 import com.tidal.builtin.client.TidalMods;
 import com.tidal.builtin.client.TidalPanelScreen;
 import net.fabricmc.api.ClientModInitializer;
@@ -36,6 +37,7 @@ public class TidalBuiltin implements ClientModInitializer {
         CapeShare.tick(minecraft);
         HudRuntime.tick(minecraft);
         PlayFeatures.tick(minecraft);
+        SkinArchive.tick(minecraft);
         if (minecraft.player == null || minecraft.level == null) {
             return;
         }

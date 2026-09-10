@@ -1,6 +1,6 @@
 {
   "name": "tidal-client",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "description": "Tidal Client — a modern Minecraft launcher",
   "main": "./out/main/index.js",
   "author": "Retro",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Retro-Circuit/Tidal-Client.git"
+    "url": "git+https://github.com/ZeShadowzYT/Tidal-Client.git"
   },
   "dependencies": {
     "@xmcl/core": "2.15.1",
@@ -34,7 +34,9 @@
     "electron-store": "^10.1.0",
     "lucide-react": "^0.511.0",
     "marked": "^15.0.12",
-    "msmc": "^5.0.5"
+    "msmc": "^5.0.5",
+    "skinview3d": "^3.4.2",
+    "three": "^0.186.0"
   },
   "overrides": {
     "@xmcl/unzip": "2.1.2",

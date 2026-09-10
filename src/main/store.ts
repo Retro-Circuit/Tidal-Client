@@ -37,7 +37,8 @@ const defaults: AppSettings = {
   maxMemoryMb: 4096,
   minMemoryMb: 2048,
   javaPath: '',
-  importPromptDismissed: false
+  importPromptDismissed: false,
+  lastInstanceId: ''
 }
 
 export const store = new Store<Schema>({

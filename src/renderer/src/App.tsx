@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings, ForeignInstance, NavView, ProjectType, SessionState } from '../../shared/types'
+import { Chrome } from './components/Chrome'
 import { CreateInstanceModal } from './components/CreateInstanceModal'
 import { ImportInstancesModal } from './components/ImportInstancesModal'
-import { Sidebar } from './components/Sidebar'
-import { TopBar } from './components/TopBar'
+import { CosmeticsView } from './views/Cosmetics'
 import { DiscoverView } from './views/Discover'
+import { HomeView } from './views/Home'
 import { InstancesView } from './views/Instances'
 import { SettingsView } from './views/Settings'
 
 export default function App() {
-  const [view, setView] = useState<NavView>('discover')
+  const [view, setView] = useState<NavView>('home')
   const [session, setSession] = useState<SessionState>({ loggedIn: false, profile: null })
   const [loggingIn, setLoggingIn] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
@@ -45,70 +46,78 @@ export default function App() {
     try {
       setSession(await window.tidal.login())
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+':\s*/, '') : String(error))
+      setLoginError(
+        error instanceof Error
+          ? error.message.replace(/^Error invoking remote method '[^']+':\s*/, '')
+          : String(error)
+      )
     } finally {
       setLoggingIn(false)
     }
   }
 
   return (
-    <div className="flex h-full bg-ink">
-      <Sidebar
+    <div className="flex h-full flex-col">
+      <Chrome
         view={view}
         onChange={(next) => {
           if (next === 'discover' && view !== 'discover') setDiscoverIntent(undefined)
           setView(next)
         }}
-        onCreateInstance={() => {
-          setView('instances')
-          setCreating(true)
-        }}
+        session={session}
+        loggingIn={loggingIn}
+        loginError={loginError}
+        onLogin={() => void login()}
+        onLogout={() => void window.tidal.logout().then(setSession)}
       />
-      <main className="relative flex min-w-0 flex-1 flex-col">
-        <TopBar
-          session={session}
-          loggingIn={loggingIn}
-          loginError={loginError}
-          onLogin={() => void login()}
-          onLogout={() => void window.tidal.logout().then(setSession)}
-        />
-        <section className="no-drag min-h-0 flex-1 overflow-hidden px-7 py-6">
-          {view === 'discover' ? (
-            <DiscoverView
-              settings={settings}
-              onSettings={patchSettings}
-              intent={discoverIntent}
-              onClearIntent={() => setDiscoverIntent(undefined)}
-            />
-          ) : null}
-          {view === 'instances' ? (
-            <InstancesView
-              onCreateInstance={() => setCreating(true)}
-              onDiscover={(intent) => {
-                setDiscoverIntent(intent ?? { projectType: 'mod' })
-                setView('discover')
-              }}
-              refreshKey={instanceTick}
-            />
-          ) : null}
-          {view === 'settings' ? (
-            <SettingsView
-              settings={settings}
-              onSettings={patchSettings}
-              scanNote={scanNote}
-              onScanLaunchers={async () => {
-                const found = await window.tidal.scanForeignInstances()
-                if (found.length) {
-                  setScanNote(null)
-                  setForeign(found)
-                } else {
-                  setScanNote('No other launcher instances were found on this PC.')
-                }
-              }}
-            />
-          ) : null}
-        </section>
-      </main>
+      <section className="no-drag min-h-0 flex-1 overflow-hidden px-6 py-5">
+        {view === 'home' ? (
+          <HomeView
+            session={session}
+            lastInstanceId={settings?.lastInstanceId ?? ''}
+            onLastInstance={(id) => void patchSettings({ lastInstanceId: id })}
+            onCreateInstance={() => setCreating(true)}
+            onOpenMods={() => setView('discover')}
+            onOpenInstances={() => setView('instances')}
+            refreshKey={instanceTick}
+          />
+        ) : null}
+        {view === 'discover' ? (
+          <DiscoverView
+            settings={settings}
+            onSettings={patchSettings}
+            intent={discoverIntent}
+            onClearIntent={() => setDiscoverIntent(undefined)}
+          />
+        ) : null}
+        {view === 'instances' ? (
+          <InstancesView
+            onCreateInstance={() => setCreating(true)}
+            onDiscover={(intent) => {
+              setDiscoverIntent(intent ?? { projectType: 'mod' })
+              setView('discover')
+            }}
+            refreshKey={instanceTick}
+          />
+        ) : null}
+        {view === 'cosmetics' ? <CosmeticsView /> : null}
+        {view === 'settings' ? (
+          <SettingsView
+            settings={settings}
+            onSettings={patchSettings}
+            scanNote={scanNote}
+            onScanLaunchers={async () => {
+              const found = await window.tidal.scanForeignInstances()
+              if (found.length) {
+                setScanNote(null)
+                setForeign(found)
+              } else {
+                setScanNote('No other launcher instances were found on this PC.')
+              }
+            }}
+          />
+        ) : null}
+      </section>
       {foreign ? (
         <ImportInstancesModal
           found={foreign}
@@ -128,7 +137,7 @@ export default function App() {
           onClose={() => setCreating(false)}
           onCreated={() => {
             setInstanceTick((n) => n + 1)
-            setView('instances')
+            setView('home')
           }}
         />
       ) : null}

@@ -13,6 +13,7 @@ import type {
   ProjectDetails,
   SearchResult,
   SessionState,
+  SkinPreview,
   VersionManifest,
   WalletState
 } from '../shared/types'
@@ -24,6 +25,7 @@ const api = {
   login: () => ipcRenderer.invoke('auth:login') as Promise<SessionState>,
   logout: () => ipcRenderer.invoke('auth:logout') as Promise<SessionState>,
   session: () => ipcRenderer.invoke('auth:session') as Promise<SessionState>,
+  getSkinPreview: (uuid?: string) => ipcRenderer.invoke('skins:preview', uuid) as Promise<SkinPreview | null>,
   getSettings: () => ipcRenderer.invoke('settings:get') as Promise<AppSettings>,
   setSettings: (patch: Partial<AppSettings>) =>
     ipcRenderer.invoke('settings:set', patch) as Promise<AppSettings>,

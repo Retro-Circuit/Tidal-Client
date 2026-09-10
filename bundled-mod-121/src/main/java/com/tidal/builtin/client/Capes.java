@@ -15,6 +15,8 @@ import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -200,16 +202,26 @@ public final class Capes {
             NativeImage[] frames;
             int[] delays;
             Path file = folder.resolve(item.file);
+            byte[] bundled = classpathCape(item.file);
             if (Files.isRegularFile(file) && item.file.toLowerCase().endsWith(".gif")) {
                 frames = gifFrames(file);
                 delays = gifDelays(file, frames.length);
             } else if (Files.isRegularFile(file)) {
                 frames = new NativeImage[] {readStill(file)};
                 delays = new int[] {1};
+            } else if (bundled != null && item.file.toLowerCase().endsWith(".gif")) {
+                frames = gifFrames(bundled);
+                delays = gifDelays(bundled, frames.length);
+            } else if (bundled != null) {
+                frames = new NativeImage[] {readStillBytes(bundled)};
+                delays = new int[] {1};
             } else if ("white".equals(item.id)) {
                 frames = new NativeImage[] {solidWhite()};
                 delays = new int[] {1};
             } else if ("blzxy".equals(item.id)) {
+                frames = new NativeImage[] {exclusiveCape()};
+                delays = new int[] {1};
+            } else if ("shadowz".equals(item.id)) {
                 frames = new NativeImage[] {exclusiveCape()};
                 delays = new int[] {1};
             } else {
@@ -256,10 +268,46 @@ public final class Capes {
         if (!hasExclusive) {
             ITEMS.add(new Item("blzxy", "BLZXY", 0, "blzxy.png", "_BLZXY"));
         }
+        boolean hasShadowz = false;
+        for (Item item : ITEMS) {
+            if ("shadowz".equals(item.id)) {
+                hasShadowz = true;
+                break;
+            }
+        }
+        if (!hasShadowz) {
+            ITEMS.add(new Item("shadowz", "Shadowz", 0, "shadowz.gif", "_ShadowzYT"));
+        }
     }
 
     public static Path folder() {
         return FabricLoader.getInstance().getGameDir().resolve("tidal-capes");
+    }
+
+    private static byte[] classpathCape(String file) {
+        try (InputStream stream = Capes.class.getResourceAsStream("/assets/tidal-builtin/textures/cape/" + file)) {
+            return stream == null ? null : stream.readAllBytes();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static NativeImage[] gifFrames(byte[] data) {
+        try (ImageInputStream stream = ImageIO.createImageInputStream(new ByteArrayInputStream(data))) {
+            return gifFrames(stream);
+        } catch (Exception ignored) {
+            return new NativeImage[] {solidWhite()};
+        }
+    }
+
+    private static int[] gifDelays(byte[] data, int count) {
+        try (ImageInputStream stream = ImageIO.createImageInputStream(new ByteArrayInputStream(data))) {
+            return gifDelays(stream, count);
+        } catch (Exception ignored) {
+            int[] delays = new int[count];
+            java.util.Arrays.fill(delays, 2);
+            return delays;
+        }
     }
 
     private static NativeImage solidWhite() {
@@ -304,9 +352,29 @@ public final class Capes {
         }
     }
 
+    private static NativeImage readStillBytes(byte[] data) {
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
+            if (image == null) {
+                return solidWhite();
+            }
+            return NativeImages.fromBuffered(toOgCape(image));
+        } catch (Exception ignored) {
+            return solidWhite();
+        }
+    }
+
     private static NativeImage[] gifFrames(Path file) {
-        List<NativeImage> frames = new ArrayList<>();
         try (ImageInputStream stream = ImageIO.createImageInputStream(file.toFile())) {
+            return gifFrames(stream);
+        } catch (Exception ignored) {
+            return new NativeImage[] {solidWhite()};
+        }
+    }
+
+    private static NativeImage[] gifFrames(ImageInputStream stream) {
+        List<NativeImage> frames = new ArrayList<>();
+        try {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
             if (!readers.hasNext()) {
                 return new NativeImage[] {solidWhite()};
@@ -325,9 +393,19 @@ public final class Capes {
     }
 
     private static int[] gifDelays(Path file, int count) {
+        try (ImageInputStream stream = ImageIO.createImageInputStream(file.toFile())) {
+            return gifDelays(stream, count);
+        } catch (Exception ignored) {
+            int[] delays = new int[count];
+            java.util.Arrays.fill(delays, 2);
+            return delays;
+        }
+    }
+
+    private static int[] gifDelays(ImageInputStream stream, int count) {
         int[] delays = new int[count];
         java.util.Arrays.fill(delays, 2);
-        try (ImageInputStream stream = ImageIO.createImageInputStream(file.toFile())) {
+        try {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
             if (!readers.hasNext()) {
                 return delays;
