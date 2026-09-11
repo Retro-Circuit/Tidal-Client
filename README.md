@@ -1,6 +1,6 @@
 # Tidal Client
 
-A dark, minimal Minecraft launcher built with Electron, React, Tailwind CSS, and TypeScript. (Cursor was Used for Bug fixes.)
+A dark, minimal Minecraft launcher built with Electron, React, Tailwind CSS, and TypeScript. (Cursor was ONLY Used for Bug fixes.)
 
 ## What it does
 
